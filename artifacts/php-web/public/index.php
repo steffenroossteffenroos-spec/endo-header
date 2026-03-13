@@ -1,117 +1,207 @@
 <?php
-/**
- * Gemini Nano Banana Pro - Bildgenerator
- * Charset: UTF-8
- */
-//$apiKey = $_SERVER['EndoImage'];
-$apiKey = $_ENV['ApiKey'];
-$password = $_SERVER['password'];
+
+    $password = getenv('password');
+    if (($_GET['pw'] ?? '') !== $password) die("Zutritt verweigert.");
 
 
-// Modell-Konfiguration (Nano Banana Pro)
-$modelFlashLite = "gemini-2.0-flash-lite";
-$modelFlash = "gemini-3.1-flash-image-preview";
-$modelPro = "gemini-2.5-flash-image";
+    // apiKey für Google Gemini aus Umgebungsvariable laden
+    $apiKey = getenv('ApiKey');
 
-$model_id = $modelFlash;
-
-// 1. Sicherheit: Fehleranzeige (im Live-Betrieb auf 0 setzen)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-
-// 2. Charset Header für den Browser
-header('Content-Type: text/html; charset=utf-8');
-
-$generatedImageBase64 = null;
-$errorMsg = null;
-$mimeType = "image/png";
-
-// 4. Logik bei Formular-Absendung
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['title'])) {
-    $userTitle = trim($_POST['title']);
+    // --- AJAX ENDPUNKT ---
+    if (isset($_GET['action']) && $_GET['action'] === 'generate') {
+        header('Content-Type: application/json');
+        $title = $_GET['title'] ?? '';
+        $model = $_GET['model'] ?? 'gemini-2.5-flash-image';
+        
+        // CI Master Prompt
+        $ci_prompt = "Style: Bright, airy documentary health photography and photorealistic still life. \n" .
+         "Subject Basis: Adaptive to the title. The image can show genuine people OR minimalist medical objects (pills, kits, devices) OR clean microscopic/conceptual views, depending on what fits best. \n" .
+         "Quality: Photorealistic textures everywhere. NO plastic look, NO glossy 3D rendering style. If people are present: real skin texture, genuine expressions matching the topic (skeptical vs positive). \n" .
+         "Colors & Light: Dominant soft blush pink (#FDF2F5), warm beige, and white. Natural daylight, very bright, no harsh shadows. \n" .
+         "Constraints: ABSOLUTELY NO TEXT, no labels, no signage. No red ribbons, no clinical gore, no internal anatomy.";
     
-    // API Endpoint
-    $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model_id}:generateContent?key=" . $apiKey;
-
-    // Payload für die Bildgenerierung
-    $data = [
-        "contents" => [
-            ["parts" => [["text" => "Generate a professional, high-fidelity image based on this title: " . $userTitle]]]
-        ],
-        "generationConfig" => [
-            "response_modalities" => ["IMAGE"] // Erzwingt Bild-Ausgabe
-        ]
-    ];
-
-    $ch = curl_init($apiUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        $payload = [
+            "contents" => [["parts" => [["text" => $ci_prompt . " Subject: " . $title]]]],
+            "generationConfig" => ["response_modalities" => ["IMAGE"]]
+        ];
     
-    $response = curl_exec($ch);
-    $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    $result = json_decode($response, true);
-
-    if ($httpStatus === 200 && isset($result['candidates'][0]['content']['parts'])) {
-        foreach ($result['candidates'][0]['content']['parts'] as $part) {
-            if (isset($part['inlineData'])) {
-                $generatedImageBase64 = $part['inlineData']['data'];
-                $mimeType = $part['inlineData']['mimeType'];
-                break;
-            }
-        }
-    } else {
-        $errorMsg = "API-Fehler ({$httpStatus}): " . ($result['error']['message'] ?? "Unbekannter Fehler.");
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode($payload)
+        ]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+    
+        sleep(2); // Rate Limit Schutz
+        echo $response;
+        exit;
     }
-}
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nano Banana Pro Generator</title>
-    <style>
-        :root { --primary: #1a73e8; --bg: #f8f9fa; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: #333; display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 600px; }
-        h1 { color: var(--primary); font-size: 24px; margin-bottom: 20px; }
-        input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; margin-bottom: 15px; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; }
-        button:hover { background: #1557b0; }
-        .result-box { margin-top: 25px; text-align: center; }
-        .result-box img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .error { color: #d93025; background: #fce8e6; padding: 15px; border-radius: 6px; margin-top: 15px; }
-    </style>
+    <title>Endo-Header - Titelbild Generator</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    test: <?php echo $password; ?>
+
+<div id="overlay" onclick="this.style.display='none'">
+    <img src="" alt="Full Size">
+</div>
+
+<div class="container">
+    <h1>Endo-Header - Titelbild Generator</h1>
+
+    <div id="setup-view" class="setup-area">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="loadTitles('news', this)">News</button>
+            <button class="tab-btn" onclick="loadTitles('wissen', this)">Wissen</button>
+            <button class="tab-btn" onclick="loadTitles('forschung', this)">Forschung</button>
+        </div>
+        
+        <textarea id="titles-input"></textarea>
+        
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <select id="model-select" style="padding: 12px; border-radius: 50px; border: 2px solid var(--endo-border); font-weight: 700; color: var(--endo-navy);">
+                <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
+                <option disabled value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image Preview</option>
+            </select>
+
+            
+            <button class="btn" onclick="startBatch()">Bilder generieren...</button>
+        </div>
+    </div>
+
+    <div id="batch-view">
+        <div class="progress-bg"><div id="progress-bar"></div></div>
+        <p id="progress-text" style="text-align: center; margin-bottom: 30px; color:#color: green; font-weight: bold;"></p>
+        <div class="grid" id="asset-grid"></div>
+    </div>
+</div>
+
+<script>
+    const lists = {
+        news: [
+            "Yselty® – Neu zugelassener Wirkstoff bei Endometriose",
+            "Neues in der Endometriose-Behandlung: Relugolix",
+            "Speicheltest für Endometriose: Kritische Stimmen",
+            "Endometriose-Awareness im März",
+            "Endo March: Was steht an? Wie kann ich aktiv werden?",
+            "Langes Warten auf den Freischaltcode",
+            "Juristische Waagschalen und Hammer",
+            "Digitalisierung im Gesundheitswesen – DigiG",
+            "Endo Health GmbH auf dem 15. Endometriose-Kongress",
+            "Die Rolle von Fusobakterien"
+        ].join('\n'),
+
+        wissen: [
+            "Früherkennung bei Endometriose",
+            "Umweltfaktoren, Genetik und ihre Rolle",
+            "Autoimmunerkrankungen und Endometriose",
+            "Endometriose mit KI früher erkennen",
+            "Zellstudien machen Hoffnung",
+            "Biomarker & Endometriose",
+            "Endometriose: Fakten statt Mythen",
+            "Grundlagenforschung",
+            "Wahlprogramme im Endo-Check",
+            "Yoga im Sitzen"
+        ].join('\n'),
+
+        forschung: [
+            "Endometriose und Fatigue",
+            "Woher kommt Endometriose?",
+            "Fusobakterien bei der Entstehung",
+            "Tumormarker in der Diagnostik?",
+            "Natürlich schwanger werden",
+            "PMDS vs PMS Unterschied",
+            "Grünteekomplex Schmerzen",
+            "Endometriose, Reizdarm und Essstörungen",
+            "Prämenstruelles Syndrom (PMS)",
+            "Vitamin C & Vitamin E Therapie"
+        ].join('\n')
+    };
+document.getElementById('titles-input').value = lists.news;
+
+function loadTitles(cat, btn) {
+    document.getElementById('titles-input').value = lists[cat];
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function openOverlay(src) {
+    const overlay = document.getElementById('overlay');
+    overlay.querySelector('img').src = src;
+    overlay.style.display = 'flex';
+}
+
+async function startBatch() {
+    const input = document.getElementById('titles-input').value;
+    const model = document.getElementById('model-select').value;
+    const titles = input.split('\n').filter(t => t.trim() !== '');
     
-	<div class="container">
-		<h1>Bild-Analyse & Generator</h1>
-		<p>Gib einen Titel ein, um ein Bild mit <strong>Nano Banana Pro</strong> zu erstellen.</p>
-		
-		<form method="POST">
-			<input type="text" name="title" placeholder="z.B. Ein neon-leuchtender Astronaut im Dschungel" required 
-				   value="<?php echo isset($_POST['title']) ? htmlspecialchars($_POST['title']) : ''; ?>">
-			<button type="submit">Bild jetzt generieren</button>
-		</form>
+    document.getElementById('setup-view').style.display = 'none';
+    document.getElementById('batch-view').style.display = 'block';
+    
+    const grid = document.getElementById('asset-grid');
+    grid.innerHTML = '';
 
-		<?php if ($errorMsg): ?>
-			<div class="error"><?php echo htmlspecialchars($errorMsg); ?></div>
-		<?php endif; ?>
+    titles.forEach((title, i) => {
+        grid.innerHTML += `
+            <div class="card" id="card-${i}">
+                <strong>#${i+1}: ${title}</strong>
+                <div class="loader-box">
+                    <div class="spinner"></div>
+                    <span style="color: #64748b;">Warte auf API...</span>
+                </div>
+                <img id="img-${i}" src="" onclick="openOverlay(this.src)">
+                <a id="dl-${i}" class="download-btn">Download</a>
+            </div>
+        `;
+    });
 
-		<?php if ($generatedImageBase64): ?>
-			<div class="result-box">
-				<h3>Dein Ergebnis:</h3>
-				<img src="data:<?php echo $mimeType; ?>;base64,<?php echo $generatedImageBase64; ?>" alt="Generiertes Bild">
-				<p><small>Tipp: Rechtsklick zum Speichern</small></p>
-			</div>
-		<?php endif; ?>
-	</div>
+    for (let i = 0; i < titles.length; i++) {
+        const card = document.getElementById(`card-${i}`);
+        card.classList.add('active');
+        document.getElementById('progress-text').innerText = `Generiere ${i+1} von ${titles.length}...`;
+
+        try {
+            //const response = await fetch(`?action=generate&model=${model}&title=${encodeURIComponent(titles[i])}`);
+            const pw = new URLSearchParams(window.location.search).get('pw');
+            const response = await fetch(`?action=generate&pw=${pw}&model=${model}&title=${encodeURIComponent(titles[i])}`);
+            
+            const result = await response.json();
+            const base64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+            if (base64) {
+                const mime = result.candidates[0].content.parts[0].inlineData.mimeType;
+                const dataUrl = `data:${mime};base64,${base64}`;
+                const img = document.getElementById(`img-${i}`);
+                img.src = dataUrl;
+                
+                // Download Link schärfen
+                const dl = document.getElementById(`dl-${i}`);
+                dl.href = dataUrl;
+                dl.download = `Endo_Asset_${i+1}.png`;
+
+                card.classList.remove('active');
+                card.classList.add('done');
+            } else {
+                const err = result.error?.message || "Safety Block";
+                card.innerHTML += `<p style="color:#ef4444; font-size:12px; margin-top:10px;">⚠️ ${err}</p>`;
+                card.classList.remove('active');
+                card.classList.add('done');
+            }
+        } catch (e) { console.error(e); }
+
+        const percent = ((i + 1) / titles.length) * 100;
+        document.getElementById('progress-bar').style.width = percent + '%';
+    }
+    document.getElementById('progress-text').innerText = "Abgeschlossen!";
+}
+</script>
 </body>
 </html>
