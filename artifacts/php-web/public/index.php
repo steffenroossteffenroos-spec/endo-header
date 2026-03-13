@@ -4,8 +4,8 @@
  * Charset: UTF-8
  */
 //$apiKey = $_SERVER['EndoImage'];
-$apiKey = $_SERVER['ApiKey'] ?? $_ENV['ApiKey'];
-$password = $_SERVER['password'] ?? $_ENV['password'];
+$apiKey = $_ENV['ApiKey'];
+$password = $_SERVER['password'];
 
 
 // Modell-Konfiguration (Nano Banana Pro)
