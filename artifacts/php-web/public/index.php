@@ -1,191 +1,121 @@
+
 <?php
-$requestUri = $_SERVER['REQUEST_URI'];
-$path = parse_url($requestUri, PHP_URL_PATH);
+/**
+ * Gemini Nano Banana Pro - Bildgenerator
+ * Charset: UTF-8
+ */
+//$apiKey = $_SERVER['EndoImage'];
+$apiKey = getenv('ApiKeyEndoImage');
 
-$phpVersion = phpversion();
-$serverTime = date('Y-m-d H:i:s');
-$memoryUsage = round(memory_get_usage(true) / 1024, 2);
 
+// Modell-Konfiguration (Nano Banana Pro)
+$modelFlashLite = "gemini-2.0-flash-lite";
+$modelFlash = "gemini-3.1-flash-image-preview";
+$modelPro = "gemini-2.5-flash-image";
+
+$model_id = $modelFlash;
+
+// 1. Sicherheit: Fehleranzeige (im Live-Betrieb auf 0 setzen)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+
+
+// 2. Charset Header für den Browser
+header('Content-Type: text/html; charset=utf-8');
+
+// 3. DEIN FESTER SCHLÜSSEL
+// Wichtig: In einer Produktionsumgebung besser über eine .env Datei laden!
+define('GEMINI_API_KEY', $apiKey);
+
+$generatedImageBase64 = null;
+$errorMsg = null;
+$mimeType = "image/png";
+
+// 4. Logik bei Formular-Absendung
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['title'])) {
+    $userTitle = trim($_POST['title']);
+    
+    // API Endpoint
+    $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model_id}:generateContent?key=" . GEMINI_API_KEY;
+
+    // Payload für die Bildgenerierung
+    $data = [
+        "contents" => [
+            ["parts" => [["text" => "Generate a professional, high-fidelity image based on this title: " . $userTitle]]]
+        ],
+        "generationConfig" => [
+            "response_modalities" => ["IMAGE"] // Erzwingt Bild-Ausgabe
+        ]
+    ];
+
+    $ch = curl_init($apiUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    
+    $response = curl_exec($ch);
+    $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $result = json_decode($response, true);
+
+    if ($httpStatus === 200 && isset($result['candidates'][0]['content']['parts'])) {
+        foreach ($result['candidates'][0]['content']['parts'] as $part) {
+            if (isset($part['inlineData'])) {
+                $generatedImageBase64 = $part['inlineData']['data'];
+                $mimeType = $part['inlineData']['mimeType'];
+                break;
+            }
+        }
+    } else {
+        $errorMsg = "API-Fehler ({$httpStatus}): " . ($result['error']['message'] ?? "Unbekannter Fehler.");
+    }
+}
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHP Web Server</title>
+    <title>Nano Banana Pro Generator</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f172a;
-            color: #e2e8f0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        header {
-            background: #1e293b;
-            border-bottom: 1px solid #334155;
-            padding: 1rem 2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .logo {
-            background: #4f46e5;
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-        header h1 { font-size: 1.1rem; font-weight: 600; }
-        header span { color: #94a3b8; font-size: 0.85rem; margin-left: auto; }
-        main {
-            flex: 1;
-            padding: 2rem;
-            max-width: 1000px;
-            width: 100%;
-            margin: 0 auto;
-        }
-        .hero {
-            text-align: center;
-            padding: 3rem 0 2rem;
-        }
-        .hero h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .hero p { color: #94a3b8; font-size: 1rem; }
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-        .card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 1.25rem;
-        }
-        .card-label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
-        .card-value { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; }
-        .card-value.green { color: #4ade80; }
-        .section {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-        }
-        .section h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #c7d2fe; }
-        .route-list { list-style: none; }
-        .route-list li {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.6rem 0;
-            border-bottom: 1px solid #1e293b;
-        }
-        .route-list li:last-child { border-bottom: none; }
-        .method {
-            background: #312e81;
-            color: #a5b4fc;
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            letter-spacing: 0.05em;
-        }
-        .route-path { font-family: monospace; font-size: 0.9rem; color: #e2e8f0; }
-        .route-desc { color: #64748b; font-size: 0.85rem; margin-left: auto; }
-        a { color: #818cf8; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        footer {
-            text-align: center;
-            color: #475569;
-            font-size: 0.8rem;
-            padding: 1.5rem;
-            border-top: 1px solid #1e293b;
-        }
+        :root { --primary: #1a73e8; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: #333; display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 600px; }
+        h1 { color: var(--primary); font-size: 24px; margin-bottom: 20px; }
+        input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; margin-bottom: 15px; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; }
+        button:hover { background: #1557b0; }
+        .result-box { margin-top: 25px; text-align: center; }
+        .result-box img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .error { color: #d93025; background: #fce8e6; padding: 15px; border-radius: 6px; margin-top: 15px; }
     </style>
 </head>
 <body>
-    <header>
-        <div class="logo">PHP</div>
-        <h1>PHP Web Server</h1>
-        <span>Running on PHP <?= htmlspecialchars($phpVersion) ?></span>
-    </header>
-    <main>
-        <div class="hero">
-            <h2>Your PHP Server is Live</h2>
-            <p>Edit files in <code>artifacts/php-web/public/</code> to build your app.</p>
-        </div>
-        <div class="cards">
-            <div class="card">
-                <div class="card-label">PHP Version</div>
-                <div class="card-value"><?= htmlspecialchars($phpVersion) ?></div>
-            </div>
-            <div class="card">
-                <div class="card-label">Server Time</div>
-                <div class="card-value"><?= htmlspecialchars($serverTime) ?></div>
-            </div>
-            <div class="card">
-                <div class="card-label">Memory Usage</div>
-                <div class="card-value green"><?= $memoryUsage ?> KB</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Status</div>
-                <div class="card-value green">Running</div>
-            </div>
-        </div>
-        <div class="section">
-            <h3>Available Routes</h3>
-            <ul class="route-list">
-                <li>
-                    <span class="method">GET</span>
-                    <span class="route-path"><a href="/">/</a></span>
-                    <span class="route-desc">This page</span>
-                </li>
-                <li>
-                    <span class="method">GET</span>
-                    <span class="route-path"><a href="/info.php">/info.php</a></span>
-                    <span class="route-desc">PHP info page</span>
-                </li>
-                <li>
-                    <span class="method">GET</span>
-                    <span class="route-path"><a href="/hello.php">/hello.php</a></span>
-                    <span class="route-desc">Hello World example</span>
-                </li>
-            </ul>
-        </div>
-        <div class="section">
-            <h3>Server Environment</h3>
-            <ul class="route-list">
-                <li>
-                    <span class="route-path">Request URI</span>
-                    <span class="route-desc"><?= htmlspecialchars($requestUri) ?></span>
-                </li>
-                <li>
-                    <span class="route-path">Server Software</span>
-                    <span class="route-desc"><?= htmlspecialchars($_SERVER['SERVER_SOFTWARE'] ?? 'PHP Built-in Server') ?></span>
-                </li>
-                <li>
-                    <span class="route-path">Document Root</span>
-                    <span class="route-desc"><?= htmlspecialchars($_SERVER['DOCUMENT_ROOT'] ?? '') ?></span>
-                </li>
-            </ul>
-        </div>
-    </main>
-    <footer>PHP <?= htmlspecialchars($phpVersion) ?> &mdash; Built-in Development Server</footer>
+    test: <?php echo getenv('password') ?>;
+    
+	<div class="container">
+		<h1>Bild-Analyse & Generator</h1>
+		<p>Gib einen Titel ein, um ein Bild mit <strong>Nano Banana Pro</strong> zu erstellen.</p>
+		
+		<form method="POST">
+			<input type="text" name="title" placeholder="z.B. Ein neon-leuchtender Astronaut im Dschungel" required 
+				   value="<?php echo isset($_POST['title']) ? htmlspecialchars($_POST['title']) : ''; ?>">
+			<button type="submit">Bild jetzt generieren</button>
+		</form>
+
+		<?php if ($errorMsg): ?>
+			<div class="error"><?php echo htmlspecialchars($errorMsg); ?></div>
+		<?php endif; ?>
+
+		<?php if ($generatedImageBase64): ?>
+			<div class="result-box">
+				<h3>Dein Ergebnis:</h3>
+				<img src="data:<?php echo $mimeType; ?>;base64,<?php echo $generatedImageBase64; ?>" alt="Generiertes Bild">
+				<p><small>Tipp: Rechtsklick zum Speichern</small></p>
+			</div>
+		<?php endif; ?>
+	</div>
 </body>
 </html>
