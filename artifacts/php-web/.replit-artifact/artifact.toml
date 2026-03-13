@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "PHP Web Server"
+version = "1.0.0"
+id = "artifacts/php-web"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 22887
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/php-web run dev"
+
+[services.env]
+PORT = "22887"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/php-web", "run", "build"]
+publicDir = "artifacts/php-web/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
