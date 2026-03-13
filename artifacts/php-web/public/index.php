@@ -1,11 +1,11 @@
-
 <?php
 /**
  * Gemini Nano Banana Pro - Bildgenerator
  * Charset: UTF-8
  */
 //$apiKey = $_SERVER['EndoImage'];
-$apiKey = getenv('ApiKeyEndoImage');
+$apiKey = $_SERVER['ApiKey'] ?? $_ENV['ApiKey'];
+$password = $_SERVER['password'] ?? $_ENV['password'];
 
 
 // Modell-Konfiguration (Nano Banana Pro)
@@ -17,15 +17,11 @@ $model_id = $modelFlash;
 
 // 1. Sicherheit: Fehleranzeige (im Live-Betrieb auf 0 setzen)
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
 
 
 // 2. Charset Header für den Browser
 header('Content-Type: text/html; charset=utf-8');
-
-// 3. DEIN FESTER SCHLÜSSEL
-// Wichtig: In einer Produktionsumgebung besser über eine .env Datei laden!
-define('GEMINI_API_KEY', $apiKey);
 
 $generatedImageBase64 = null;
 $errorMsg = null;
@@ -36,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['title'])) {
     $userTitle = trim($_POST['title']);
     
     // API Endpoint
-    $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model_id}:generateContent?key=" . GEMINI_API_KEY;
+    $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model_id}:generateContent?key=" . $apiKey;
 
     // Payload für die Bildgenerierung
     $data = [
@@ -93,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['title'])) {
     </style>
 </head>
 <body>
-    test: <?php echo getenv('password') ?>;
+    test: <?php echo $password; ?>
     
 	<div class="container">
 		<h1>Bild-Analyse & Generator</h1>
