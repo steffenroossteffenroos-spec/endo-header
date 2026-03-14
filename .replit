@@ -28,4 +28,10 @@ channel = "stable-25_05"
 
 [[ports]]
 localPort = 8080
+
+[[ports]]
+localPort = 22887
 externalPort = 80
+
+[agent]
+expertMode = true
