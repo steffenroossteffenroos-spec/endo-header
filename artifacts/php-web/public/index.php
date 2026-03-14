@@ -18,8 +18,8 @@
         $model = $_GET['model'] ?? 'gemini-2.5-flash-image';
         
         // CI Master Prompt
-        $ci_prompt = "Style: Bright, airy documentary health photography and photorealistic still life. \n" .
-         "Subject Basis: Adaptive to the title. The image can show genuine people OR minimalist medical objects (pills, kits, devices) OR clean microscopic/conceptual views, depending on what fits best. \n" .
+        $ci_prompt = "Style: Bright, airy documentary health photography and photorealistic life. \n" .
+         "Subject Basis: Adaptive to the title. The image can show genuine people OR minimalist medical objects (pills, kits, devices, microscopes) OR clean microscopic views, depending on what fits best. \n" .
          "Quality: Photorealistic textures everywhere. NO plastic look, NO glossy 3D rendering style. If people are present: real skin texture, genuine expressions matching the topic (skeptical vs positive). \n" .
          "Colors & Light: Dominant soft blush pink (#FDF2F5), warm beige, and white. Natural daylight, very bright, no harsh shadows. \n" .
          "Constraints: ABSOLUTELY NO TEXT, no labels, no signage. No red ribbons, no clinical gore, no internal anatomy.";
