@@ -20,12 +20,11 @@ run = "pnpm --filter @workspace/php-web run dev"
 [services.env]
 PORT = "22887"
 BASE_PATH = "/"
+# ... (oberer Teil bleibt gleich)
 
 [services.production]
-build = ["pnpm", "--filter", "@workspace/php-web", "run", "build"]
-publicDir = "artifacts/php-web/dist/public"
-serve = "static"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+# Wir löschen den pnpm-build, da PHP nichts "bauen" muss
+build = [] 
+# Wir sagen Replit, dass es kein statischer Server ist, sondern ein eigener Prozess
+run = ["php", "-S", "0.0.0.0:22887", "-t", "artifacts/php-web/public"]
+# Wichtig: "serve" muss weg oder auf einen Port zeigen
