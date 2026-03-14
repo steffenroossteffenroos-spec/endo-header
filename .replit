@@ -9,7 +9,7 @@ id = "artifacts/mockup-sandbox"
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "php -S 0.0.0.0:22887 index.php"]
+run = ["sh", "-c", "php -S 0.0.0.0:8080 index.php"]
 
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
@@ -31,12 +31,4 @@ channel = "stable-25_05"
 
 [[ports]]
 localPort = 8080
-externalPort = 3000
-
-[[ports]]
-localPort = 8081
-externalPort = 3002
-
-[[ports]]
-localPort = 22887
 externalPort = 80
