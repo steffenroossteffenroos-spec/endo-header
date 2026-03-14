@@ -228,3 +228,72 @@ select {
 #batch-view { display: none; }
 .progress-bg { background: #e6ecef; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 40px; }
 #progress-bar { background: var(--endo-beere); width: 0%; height: 100%; transition: width 0.3s; }
+
+/* Verhindert Zoomen bei Klick auf Inputs auf dem iPhone & macht Buttons fingertauglich */
+input[type="text"], 
+input[type="password"], 
+button {
+    font-size: 16px; /* Mindestgröße gegen Auto-Zoom auf iOS */
+    padding: 12px;   /* Größere Klickfläche */
+    margin: 5px 0;
+    width: 100%;     /* Nutzt die volle Breite auf dem Handy */
+    box-sizing: border-box;
+}
+
+/* Container für das Bild: Verhindert horizontales Scrollen */
+.image-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+/* MOBILE OPTIMIERUNGEN */
+@media (max-width: 768px) {
+    body {
+        padding: 20px 15px; /* Weniger Abstand am Rand */
+    }
+
+    h1 {
+        font-size: 1.8rem; /* Kleinere Überschrift */
+        padding: 15px;
+        margin-bottom: 30px;
+    }
+
+    .setup-area {
+        padding: 20px; /* Kompakter */
+        border-radius: 16px;
+    }
+
+    .tabs {
+        flex-direction: column; /* Buttons untereinander statt nebeneinander */
+        gap: 8px;
+    }
+
+    .tab-btn {
+        width: 100%; /* Volle Breite für Daumen-Bedienung */
+        text-align: center;
+    }
+
+    .grid {
+        grid-template-columns: 1fr; /* Immer nur eine Card pro Zeile */
+        gap: 20px;
+    }
+
+    .card {
+        min-height: auto; /* Verhindert unnötig leeren Raum auf dem Handy */
+        padding: 20px;
+    }
+
+    select {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 15px; /* Abstand zum Button darunter */
+    }
+
+    .btn {
+        width: 100%; /* Button über die ganze Breite */
+        padding: 15px;
+    }
+}
+
