@@ -1,6 +1,5 @@
 <?php
-echo "Hallo Welt - der Server läuft!";
-exit;
+
     // Error Reporting an 
     ini_set('display_errors', 1);
     error_reporting(E_ALL);
