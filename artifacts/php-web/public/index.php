@@ -1,8 +1,11 @@
 <?php
+    // Error Reporting an 
+    ini_set('display_errors', 1);
+    error_reporting(E_ALL);
 
+    // simpler passwort schutz gegen bots.
     $password = getenv('password');
     if (($_GET['pw'] ?? '') !== $password) die("Zutritt verweigert.");
-
 
     // apiKey für Google Gemini aus Umgebungsvariable laden
     $apiKey = getenv('ApiKey');
