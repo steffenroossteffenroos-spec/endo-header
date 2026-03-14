@@ -60,7 +60,7 @@
 
 <div class="container">
     <h1>Endo-Header - Titelbild Generator</h1>
-        
+    <h2>Erstelle mit einem Klick KI-generierte Titelbilder für News, Wissen und Forschung im Endo-Design.</h2>
     <div id="setup-view" class="setup-area">
         <div class="tabs">
             <button class="tab-btn active" onclick="loadTitles('news', this)">News</button>
