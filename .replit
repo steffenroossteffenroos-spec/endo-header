@@ -9,8 +9,7 @@ id = "artifacts/mockup-sandbox"
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "php -S 0.0.0.0:22887 index.php"]
-
+run = ["sh", "-c", "php -S 0.0.0.0:22887 -t php-web/public"]
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
@@ -18,16 +17,12 @@ env = { "CI" = "true" }
 [workflows]
 runButton = "Project"
 
-
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
-
-[[ports]]
-localPort = 8080
 
 [[ports]]
 localPort = 22887
