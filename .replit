@@ -9,7 +9,7 @@ id = "artifacts/mockup-sandbox"
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "php -S 0.0.0.0:8000 index.php"]
+run = ["sh", "-c", "php -S 0.0.0.0:8080 index.php"]
 
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
