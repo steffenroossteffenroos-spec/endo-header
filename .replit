@@ -1,34 +1,13 @@
-modules = ["nodejs-24", "php", "php-8.4"]
-
-[[artifacts]]
-id = "artifacts/api-server"
-
-[[artifacts]]
-id = "artifacts/mockup-sandbox"
+modules = ["php-8.4"] # nodejs-24 raus, wenn du es nicht für PHP brauchst
 
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "php -S 0.0.0.0:8080 index.php"]
+# Port auf 8000 ändern, weil 8080 besetzt ist
+run = ["sh", "-c", "php -S 0.0.0.0:8000 index.php"]
 
-[deployment.postBuild]
-args = ["pnpm", "store", "prune"]
-env = { "CI" = "true" }
-
-[workflows]
-runButton = "Project"
-
-[agent]
-stack = "PNPM_WORKSPACE"
-expertMode = true
-
-[postMerge]
-path = "scripts/post-merge.sh"
-timeoutMs = 20000
-
-[nix]
-channel = "stable-25_05"
+# [deployment.postBuild] komplett ENTFERNT
 
 [[ports]]
-localPort = 8080
+localPort = 8000
 externalPort = 80
