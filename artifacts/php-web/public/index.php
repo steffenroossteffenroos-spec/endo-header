@@ -48,7 +48,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Endo-Header - Titelbild Generator</title>
+    <title>EndoHeader - Titelbild Generator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -60,26 +60,22 @@
 
 <div class="container">
     <h1>Endo-Header - Titelbild Generator</h1>
-
+        
     <div id="setup-view" class="setup-area">
         <div class="tabs">
             <button class="tab-btn active" onclick="loadTitles('news', this)">News</button>
             <button class="tab-btn" onclick="loadTitles('wissen', this)">Wissen</button>
             <button class="tab-btn" onclick="loadTitles('forschung', this)">Forschung</button>
         </div>
-        
-        <textarea id="titles-input"></textarea>
+        <textarea id="titles-input" wrap="off"></textarea>
         
         <div style="display: flex; gap: 15px; align-items: center;">
             <select id="model-select" style="padding: 12px; border-radius: 50px; border: 2px solid var(--endo-border); font-weight: 700; color: var(--endo-navy);">
                 <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
                 <option disabled value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image Preview</option>
             </select>
-
-            
-            <button class="btn" onclick="startBatch()">Bilder generieren...</button><br>
-            
         </div>
+        <button class="btn" onclick="startBatch()" >Bilder generieren...</button>
     </div>
     
     <div id="batch-view">

@@ -39,6 +39,7 @@ h1 {
 }
 
 h2 {
+    color: #a32a53;
     font-size: 28px;
     line-height: 1.1em;
     margin-bottom: 10px;
@@ -60,7 +61,7 @@ h2 {
 
 .tab-btn { 
     font-family: 'Helvetica', sans-serif;
-    background: #f1f4f6; 
+    background: #c9bbbb; 
     color: var(--endo-beere); 
     border: none;
     padding: 12px 28px; 
@@ -89,6 +90,8 @@ textarea {
     box-sizing: border-box;
     outline: none;
     transition: border-color 0.2s;
+    overflow-x: auto; /* Erlaubt horizontales Scrollen */
+    white-space: pre; /* Behandelt Text exakt wie eingegeben */
 }
 
 textarea:focus { border-color: var(--endo-beere); }
@@ -227,7 +230,7 @@ select {
 
 #batch-view { display: none; }
 .progress-bg { background: #e6ecef; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 40px; }
-#progress-bar { background: var(--endo-beere); width: 0%; height: 100%; transition: width 0.3s; }
+#progress-bar { background: green; width: 0%; height: 100%; transition: width 0.3s; }
 
 /* Verhindert Zoomen bei Klick auf Inputs auf dem iPhone & macht Buttons fingertauglich */
 input[type="text"], 
@@ -251,7 +254,7 @@ button {
 /* MOBILE OPTIMIERUNGEN */
 @media (max-width: 768px) {
     body {
-        padding: 20px 15px; /* Weniger Abstand am Rand */
+        padding: 20px 5px; /* Weniger Abstand am Rand */
     }
 
     h1 {
@@ -261,7 +264,7 @@ button {
     }
 
     .setup-area {
-        padding: 20px; /* Kompakter */
+        padding: 20px 0; /* Kompakter */
         border-radius: 16px;
     }
 
