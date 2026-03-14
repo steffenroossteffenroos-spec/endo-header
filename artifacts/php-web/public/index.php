@@ -77,15 +77,17 @@
             </select>
 
             
-            <button class="btn" onclick="startBatch()">Bilder generieren...</button>
+            <button class="btn" onclick="startBatch()">Bilder generieren...</button><br>
+            
         </div>
     </div>
-
+    
     <div id="batch-view">
         <div class="progress-bg"><div id="progress-bar"></div></div>
         <p id="progress-text" style="text-align: center; margin-bottom: 30px; color:#color: green; font-weight: bold;"></p>
         <div class="grid" id="asset-grid"></div>
     </div>
+    <button id="reset-btn" class="btn" style="display:none;" onclick="location.reload()">Neu beginnen</button>           
 </div>
 
 <script>
@@ -206,6 +208,8 @@ async function startBatch() {
         document.getElementById('progress-bar').style.width = percent + '%';
     }
     document.getElementById('progress-text').innerText = "Abgeschlossen!";
+    document.getElementById('reset-btn').style.display = 'block';
+    
 }
 </script>
 </body>
