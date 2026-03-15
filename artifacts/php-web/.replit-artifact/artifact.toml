@@ -15,7 +15,8 @@ name = "web"
 paths = ["/"]
 
 [services.development]
-run = "pnpm --filter @workspace/php-web run dev"
+# Vorher: run = "pnpm --filter @workspace/php-web run dev"
+run = ["php", "-S", "0.0.0.0:22887", "-t", "artifacts/php-web/public"]
 
 [services.env]
 PORT = "22887"

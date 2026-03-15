@@ -23,7 +23,7 @@
 
         // 1. Base CI (Technische & Ästhetische Leitplanken)
         $base_ci = "Style: Documentary health photography. Photorealistic lifestyle or medical photo. \n" .
-        "Quality: Real skin textures, textile folds, NO plastic/3D look. Objects must look real and worn. hands have 5 fingers. \n" .
+        "Quality: Real skin textures, textile folds, NO plastic/3D look. Objects must look real and worn. \n" .
         "Camera: 50mm-85mm or macro lens, f/1.8-f/2.8, extreme shallow depth of field, soft bokeh. \n" .
         "Colors: Soft blush pink (#FDF2F5), warm beige, clean white, subtle cool blue. Bright, natural diffused daylight, no harsh shadows. \n" .
         "Constraints:ABSOLUTELY NO TEXT, letters, labels, or logos. No red ribbons, no clinical gore, no invasive procedures.";
@@ -51,8 +51,7 @@
             $vibe = "Atmosphere: Natural real-life documentary, bright and airy.";
         }
 
-        // Debugging
-        error_log($prompt . $vibe . " \n" . $base_ci);
+        
         return $prompt . $vibe . " \n" . $base_ci;
     }
 
@@ -69,16 +68,11 @@
         $aspectRatio = "1:1";
         $task = "Describe a concrete, photorealistic scene for a health blog";
         $rules = "No text in image, no metaphors, no gore. Output ONLY the English scene description.";
-        $SYSTEMRULE = "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or treatment recommendations. Do not show real medication brands or specific dosages.";
+        $SYSTEMRULE = "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or treatment recommendations. Do not show real medication brands or specific dosages. No anatomical deformities, exactly 5 fingers per hand.";
 
         // Focus: A genuine person interacting with an object (e.g. holding a cup, looking at a device, preparing food). 
         
         $textPrompt = "Task: {$task}. Topic: '{$title}'. Rules: {$rules}";
-        
-        
-        // Debugging
-        error_log("Title: ". $title);
-        error_log("Textprompt: ". $textPrompt);
        
         $ch1 = curl_init($textUrl);
         curl_setopt_array($ch1, [
@@ -91,15 +85,9 @@
 
         $optimizedScene = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
 
-        // Debugging
-        error_log("optScene: ". $optimizedScene);
-        
         // 2. Schritt: CI-Prompt bauen
         $final_prompt = get_dynamic_ci_prompt($optimizedScene, $title);
 
-        // Debugging
-        error_log("finalPrompt: ". $final_prompt);
-        
         // 3. Schritt: Bild-Generierung
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
@@ -167,7 +155,7 @@
     
     <div id="batch-view">
         <div class="progress-bg"><div id="progress-bar"></div></div>
-        <p id="progress-text" style="text-align: center; margin-bottom: 30px; color:#color: green; font-weight: bold;"></p>
+        <p id="progress-text" style="text-align: center; margin-bottom: 30px; color: green; font-weight: bold;"></p>
         <div class="grid" id="asset-grid"></div>
     </div>
     <button id="reset-btn" class="btn" style="display:none;" onclick="location.reload()">Neu beginnen</button>           
