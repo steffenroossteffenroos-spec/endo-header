@@ -95,7 +95,7 @@
         
 
         $optimizedScene = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
-error_log(textresponse);
+error_log(textResponse);
         
         // 2. Schritt: CI-Prompt bauen
         $final_prompt = get_dynamic_ci_prompt($optimizedScene, $title);
