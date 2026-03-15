@@ -93,16 +93,11 @@
         // 3. Ergebnis verarbeiten
         $textResponse = json_decode($rawResponse, true);
         
-
         $optimizedScene = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
 
-        
         // 2. Schritt: CI-Prompt bauen
         $final_prompt = get_dynamic_ci_prompt($optimizedScene, $title);
 
-        error_log($final_prompt); 
-        // 3. Schritt: Bild-Generierung
-        
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $payload = [
