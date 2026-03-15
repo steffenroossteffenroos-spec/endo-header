@@ -1,6 +1,6 @@
 <?php
     // Fehler-Management: Unterdrückung im Frontend zur Vermeidung von Information Leakage
-    ini_set('display_errors', 1);
+    ini_set('display_errors', 0);
     error_reporting(E_ALL);
 
 
@@ -78,14 +78,20 @@
        
         $ch1 = curl_init($textUrl);
         curl_setopt_array($ch1, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true, 
+            CURLOPT_POST => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
         ]);
-        
+
+        // 1. Ausführen (Antwort holen)
+        $rawResponse = curl_exec($ch1);
+
+        // 2. Verbindung erst DANN schließen
         curl_close($ch1);
-        $textResponse = json_decode(curl_exec($ch1), true);
-        
+
+        // 3. Ergebnis verarbeiten
+        $textResponse = json_decode($rawResponse, true);
         
 
         $optimizedScene = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
