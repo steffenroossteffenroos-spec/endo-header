@@ -3,57 +3,32 @@
     ini_set('display_errors', 0);
     error_reporting(E_ALL);
 
-
     // Security-Layer: Authentifizierung über serverseitige Umgebungsvariablen (Secrets) um Api-Guthaben zu schützen
     $password = getenv('password');
     if (($_GET['pw'] ?? '') !== $password) die("Zutritt verweigert.");
 
     // API-Konfiguration über Replit-Secrets
-    // oder via Umgebungsvariable (z.B. in Docker)
-    // oder Cloud-Provider-Konfiguration
-    // oder hardcoded:
-    // $apiKey = "YOUR_API_KEY";
+    // alternativ: $apiKey = "YOUR_API_KEY";
     $apiKey = getenv('ApiKey');
 
-    /**
-     * CI-Rahmen: Kombiniert die vom LLM generierte Szene mit den festen Design-Vorgaben.
-     */
-    function get_dynamic_ci_prompt($scene, $original_title) {
-        $title_lower = strtolower($original_title);
+    const IMG_ASPECT_RATIO = "1:1";
 
-        // 1. Base CI (Technische & Ästhetische Leitplanken)
-        $base_ci = "Style: Documentary health photography. Photorealistic lifestyle or medical photo. \n" .
-        "Quality: Real skin textures, textile folds, NO plastic/3D look. Objects must look real and worn. \n" .
-        "Camera: 50mm-85mm or macro lens, f/1.8-f/2.8, extreme shallow depth of field, soft bokeh. \n" .
-        "Colors: Soft blush pink (#FDF2F5), warm beige, clean white, subtle cool blue. Bright, natural diffused daylight, no harsh shadows. \n" .
-        "Constraints:ABSOLUTELY NO TEXT, letters, labels, or logos. No red ribbons, no clinical gore, no invasive procedures.";
+    const IMG_TEMPERATURE = 0.4;
+    
+    const TEXT_MODEL = "gemini-2.5-pro";
 
-         
-        // 2. Szene & Vibe-Leitplanken via Regex
-        $prompt = "Main Scene: " . $scene . " \n";
+    const CI_PROMPT = "Style: Bright, airy documentary health photography and photorealistic life. \n" .
+         "Subject Basis: Adaptive to the title. The image can show genuine people OR minimalist medical objects (pills, kits, devices, microscopes) OR clean microscopic views, depending on what fits best. \n" .
+         "Quality: Photorealistic textures everywhere. NO plastic or AI look, NO glossy 3D rendering style. \n".
+         "Colors & Light: Dominant soft blush pink (#FDF2F5), warm beige, and white. Natural daylight, very bright, no harsh shadows. \n" .
+         "Constraints: ABSOLUTELY NO TEXT, no labels, no signage. No red ribbons, no clinical gore, no internal anatomy.";
+    
+    const CI_RULES = "No text in image, no metaphors, no gore.return ready-to-use text-prompt only";
 
-        if (preg_match('/(wirkstoff|medikament|pille|therapie|vitamin|yselty|relugolix)/', $title_lower)) {
-            $vibe = "Atmosphere: Clinical but warm. Soft medical aesthetics, human-centric treatment.";
-        } 
-        elseif (preg_match('/(test|mikroskop|forschung|studie|zellen|bakterien|biomarker|diagnostik)/', $title_lower)) {
-            $vibe = "Atmosphere: Scientific and professional. Detailed macro focus on care and discovery.";
-        } 
-        elseif (preg_match('/(gesetz|wahl|recht|politik|urteil|bundestag)/', $title_lower)) {
-            $vibe = "Atmosphere: Formal and dignified. Calm, serious but bright lighting.";
-        } 
-        elseif (preg_match('/(digital|app|code|digig|software|ki)/', $title_lower)) {
-            $vibe = "Atmosphere: Modern. Subtle technology glow on skin, human-tech connection.";
-        } 
-        elseif (preg_match('/(schmerz|pms|pmds|krämpfe|beschwerden|fatigue)/', $title_lower)) {
-            $vibe = "Atmosphere: Intimate, authentic, vulnerable self-care moment.";
-        }
-        else {
-            $vibe = "Atmosphere: Natural real-life documentary, bright and airy.";
-        }
+    const SYSTEMRULE = "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or treatment recommendations. Do not show real medication brands or specific dosages.";
 
-        
-        return $prompt . $vibe . " \n" . $base_ci;
-    }
+    const TASK = "generate optimized prompt according to the topic. image will be used as header for a news article. The image should be a single scene, not a collage. The image should show real Scene, not stock photos.
+        The image should be a realistic scene documentary style, not a 3D rendering.";
 
     // --- AJAX ENDPUNKT ---
     if (isset($_GET['action']) && $_GET['action'] === 'generate') {
@@ -61,21 +36,15 @@
 
         $title = $_GET['title'] ?? '';
         $model = $_GET['model'] ?? 'gemini-2.5-flash'; // Bildmodell-Bezeichnung je nach API-Tier
-
-        // 1. Schritt: Text-LLM entwirft die Szene
-
-        $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}";
         
-
+        // 1. Schritt: Text-LLM entwirft den Prompt für einen Titel
         $aspectRatio = "1:1";
-        $task = "Describe a concrete, photorealistic scene for a health blog";
-        $rules = "No text in image, no metaphors, no gore. Output ONLY the English scene description.";
-        $SYSTEMRULE = "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or treatment recommendations. Do not show real medication brands or specific dosages. No anatomical deformities, exactly 5 fingers per hand.";
-
-        // Focus: A genuine person interacting with an object (e.g. holding a cup, looking at a device, preparing food). 
         
-        $textPrompt = "Task: {$task}. Topic: '{$title}'. Rules: {$rules}";
-       
+        $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/".TEXT_MODEL.":generateContent?key={$apiKey}";
+
+        $textPrompt = "Task: " . TASK ." Topic: '{$title}'. Rules: ". CI_RULES . " . CorporateIdenity-Rules: " . CI_PROMPT;
+        
+        // Api Call Text-Modell
         $ch1 = curl_init($textUrl);
         curl_setopt_array($ch1, [
             CURLOPT_RETURNTRANSFER => true, 
@@ -84,34 +53,35 @@
             CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
         ]);
 
-        // 1. Ausführen (Antwort holen)
         $rawResponse = curl_exec($ch1);
-
-        // 2. Verbindung erst DANN schließen
         curl_close($ch1);
-
-        // 3. Ergebnis verarbeiten
-        $textResponse = json_decode($rawResponse, true);
         
-        $optimizedScene = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
+        $textResponse = json_decode($rawResponse, true);
 
-        // 2. Schritt: CI-Prompt bauen
-        $final_prompt = get_dynamic_ci_prompt($optimizedScene, $title);
+        // Prompt für Bildmodell
+        $final_prompt = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
 
+        // Debugging
+
+        error_log("##############################################################################\nFinal Prompt: \n" . $final_prompt);
+        debug_log("##############################################################################\n");
+            
+        // 2. Schritt: Bild generieren
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $payload = [
             "contents" => [["parts" => [["text" => $final_prompt]]]],
             "systemInstruction" => [
-                "parts" => [["text" => $SYSTEMRULE]]
+                "parts" => [["text" => SYSTEMRULE]]
             ],
             "generationConfig" => [
                 "response_modalities" => ["IMAGE"],
-                "temperature" => 0.4,
-                "imageConfig" => ["aspectRatio" => $aspectRatio]
+                "temperature" => IMG_TEMPERATURE,
+                "imageConfig" => ["aspectRatio" => IMG_ASPECT_RATIO]
             ]
         ];
 
+        // Api Call Bildmodell                
         $ch = curl_init($imgUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
