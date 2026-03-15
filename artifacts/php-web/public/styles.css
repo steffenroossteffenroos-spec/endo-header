@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap');
 
 :root { 
-    --endo-beere: #960f37; 
+    --endo-beere: #a32a53; 
     --endo-navy: #312b2d; 
     --endo-bg: #f7edf3;; 
     --endo-white: #ffffff;
-    --endo-border: #f2e9e1;
+    --endo-border: #a32a53;
     --text-main: #1e1a1b;
     --text-muted: #524c4e;
     --shadow: 0 15px 45px rgb(110, 33, 33, 0.05);
@@ -22,20 +22,18 @@ body {
 
 .container { max-width: 1140px; margin: 0 auto; }
 
-h1 { 
-    
-    color: white; 
+.header {
     background-color: #a32a53;
-    font-weight: 600; 
-    text-align: center; 
-    margin-bottom: 50px;
-    font-size: 2.6rem;
-    letter-spacing: -0.03em;
-    border-width: 20px;
     border-color: #a32a53;
     border-style: solid;
     border-radius: 10px 10px 10px 10px;
+    border-width: 20px;
     padding: 20px;
+}
+h1 { 
+    color: white; 
+    font-weight: 600; 
+    text-align: center; 
 }
 
 h2 {
@@ -46,20 +44,21 @@ h2 {
     line-height: 1.1em;
     margin-bottom: 10px;
 }
+.header h2 {
+    color: white;
+}
 
 .setup-area { 
     background: var(--endo-white); 
     padding: 40px; 
-    border-radius: 24px; 
+    border-radius: 10px; 
     border: 1px solid var(--endo-border); 
     box-shadow: var(--shadow);
     margin-bottom: 50px; 
 }
-#setup-view {
-    background: #f7edf3;
-}
 
-.tabs { display: flex; gap: 12px; margin-bottom: 25px; }
+
+.tabs { display: flex; gap: 12px; margin: 25px 0 }
 
 .tab-btn { 
     font-family: 'Helvetica', sans-serif;
@@ -104,7 +103,7 @@ textarea:focus { border-color: var(--endo-beere); }
     color: white; 
     padding: 18px 45px; 
     border: none; 
-    border-radius: 50px; 
+    border-radius: 0px; 
     font-weight: 700; 
     cursor: pointer; 
     font-size: 16px;
@@ -117,7 +116,7 @@ textarea:focus { border-color: var(--endo-beere); }
 select { 
     font-family: 'Helvetica', sans-serif;
     padding: 14px 25px; 
-    border-radius: 50px; 
+    border-radius: 1px;
     background: white; 
     border: 2px solid var(--endo-border);
     color: var(--endo-navy);
@@ -134,9 +133,9 @@ select {
 
 .card { 
     background: var(--endo-white); 
-    border-radius: 24px; 
+    border-radius: 10px; 
     padding: 30px; 
-    border: 1px solid var(--endo-border); 
+    border: 2px solid var(--endo-border); 
     box-shadow: var(--shadow);
     display: flex; 
     flex-direction: column; 
@@ -164,6 +163,7 @@ select {
     margin-top: auto; 
     box-shadow: 0 12px 35px rgba(0,0,0,0.06);
     cursor: zoom-in;
+    border-radius: 12px;
 }
 
 .loader-box { 
@@ -193,7 +193,7 @@ select {
 
 /* NEU: Download Button Style */
 .download-btn {
-    background: #379300;
+    background: #810830;
     color: white;
     border: none;
     padding: 8px 15px;
