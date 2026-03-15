@@ -1,11 +1,7 @@
 {
   "name": "@workspace/php-web",
   "version": "0.0.0",
-  "private": true,
   "scripts": {
-    "dev": "php -S 0.0.0.0:$PORT -t public",
-    "build": "echo 'PHP server - no build step'",
-    "serve": "php -S 0.0.0.0:$PORT -t public",
-    "typecheck": "echo 'PHP server - no typecheck'"
+    "dev": "php -S 0.0.0.0:8080 -t public"
   }
 }
