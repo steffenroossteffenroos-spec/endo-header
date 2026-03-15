@@ -1,12 +1,18 @@
 <?php
-    // Error Reporting aus
-    ini_set('display_errors', 0);
+    // Fehler-Management: Unterdrückung im Frontend zur Vermeidung von Information Leakage
+    ini_set('display_errors', 1);
     error_reporting(E_ALL);
 
-    // simpler Passwort Schutz gegen Bots
+
+    // Security-Layer: Authentifizierung über serverseitige Umgebungsvariablen (Secrets) um Api-Guthaben zu schützen
     $password = getenv('password');
     if (($_GET['pw'] ?? '') !== $password) die("Zutritt verweigert.");
 
+    // API-Konfiguration über Replit-Secrets
+    // oder via Umgebungsvariable (z.B. in Docker)
+    // oder Cloud-Provider-Konfiguration
+    // oder hardcoded:
+    // $apiKey = "YOUR_API_KEY";
     $apiKey = getenv('ApiKey');
 
     /**
@@ -16,12 +22,13 @@
         $title_lower = strtolower($original_title);
 
         // 1. Base CI (Technische & Ästhetische Leitplanken)
-        $base_ci = "Style: Documentary health photography. Photorealistic lifestyle or medical close-up. \n" .
-        "Quality: Real skin textures, textile folds, NO plastic/3D look. Objects must look real and worn. \n" .
+        $base_ci = "Style: Documentary health photography. Photorealistic lifestyle or medical photo. \n" .
+        "Quality: Real skin textures, textile folds, NO plastic/3D look. Objects must look real and worn. hands have 5 fingers. \n" .
         "Camera: 50mm-85mm or macro lens, f/1.8-f/2.8, extreme shallow depth of field, soft bokeh. \n" .
         "Colors: Soft blush pink (#FDF2F5), warm beige, clean white, subtle cool blue. Bright, natural diffused daylight, no harsh shadows. \n" .
-        "Constraints: ABSOLUTELY NO TEXT, letters, labels, or logos. No red ribbons, no clinical gore, no invasive procedures.";
+        "Constraints:ABSOLUTELY NO TEXT, letters, labels, or logos. No red ribbons, no clinical gore, no invasive procedures.";
 
+         
         // 2. Szene & Vibe-Leitplanken via Regex
         $prompt = "Main Scene: " . $scene . " \n";
 
@@ -44,6 +51,8 @@
             $vibe = "Atmosphere: Natural real-life documentary, bright and airy.";
         }
 
+        // Debugging
+        error_log($prompt . $vibe . " \n" . $base_ci);
         return $prompt . $vibe . " \n" . $base_ci;
     }
 
@@ -56,11 +65,21 @@
 
         // 1. Schritt: Text-LLM entwirft die Szene
         $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
-        $textPrompt = "Task: Describe a concrete, photorealistic 1-sentence scene for a health blog. 
-                       Topic: '{$title}'. 
-                       Focus: A genuine person interacting with an object (e.g. holding a cup, looking at a device, preparing food). 
-                       Rules: No text in image, no metaphors, no gore. Output ONLY the English scene description.";
 
+        $aspectRatio = "1:1";
+        $task = "Describe a concrete, photorealistic scene for a health blog";
+        $rules = "No text in image, no metaphors, no gore. Output ONLY the English scene description.";
+        $SYSTEMRULE = "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or treatment recommendations. Do not show real medication brands or specific dosages.";
+
+        // Focus: A genuine person interacting with an object (e.g. holding a cup, looking at a device, preparing food). 
+        
+        $textPrompt = "Task: {$task}. Topic: '{$title}'. Rules: {$rules}";
+        
+        
+        // Debugging
+        error_log("Title: ". $title);
+        error_log("Textprompt: ". $textPrompt);
+       
         $ch1 = curl_init($textUrl);
         curl_setopt_array($ch1, [
             CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
@@ -72,21 +91,27 @@
 
         $optimizedScene = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
 
+        // Debugging
+        error_log("optScene: ". $optimizedScene);
+        
         // 2. Schritt: CI-Prompt bauen
         $final_prompt = get_dynamic_ci_prompt($optimizedScene, $title);
 
+        // Debugging
+        error_log("finalPrompt: ". $final_prompt);
+        
         // 3. Schritt: Bild-Generierung
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $payload = [
             "contents" => [["parts" => [["text" => $final_prompt]]]],
             "systemInstruction" => [
-                "parts" => [["text" => "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or treatment recommendations. Do not show real medication brands or specific dosages."]]
+                "parts" => [["text" => $SYSTEMRULE]]
             ],
             "generationConfig" => [
                 "response_modalities" => ["IMAGE"],
                 "temperature" => 0.4,
-                "imageConfig" => ["aspectRatio" => "1:1"]
+                "imageConfig" => ["aspectRatio" => $aspectRatio]
             ]
         ];
 
@@ -131,7 +156,7 @@
         </div>
         <textarea id="titles-input" wrap="off"></textarea>
         
-        <div style="display: flex; gap: 15px; align-items: center;margin-bottom:25px;">
+        <div style="display: flex; gap: 15px; align-items: center;margin-bottom:25px">
             <select id="model-select" >
                 <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
                 <option disabled value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image Preview</option>
@@ -149,6 +174,8 @@
 </div>
 
 <script>
+    // Demo-Titellisten für die verschiedenen Rubriken
+    // (Live-Titel könnten auch aus dem Web, einer Datenbank oder einer API kommen)
     const lists = {
         news: [
             "Yselty® – Neu zugelassener Wirkstoff bei Endometriose",
@@ -189,85 +216,93 @@
             "Vitamin C & Vitamin E Therapie"
         ].join('\n')
     };
-document.getElementById('titles-input').value = lists.news;
 
-function loadTitles(cat, btn) {
-    document.getElementById('titles-input').value = lists[cat];
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-}
-
-function openOverlay(src) {
-    const overlay = document.getElementById('overlay');
-    overlay.querySelector('img').src = src;
-    overlay.style.display = 'flex';
-}
-
-async function startBatch() {
-    const input = document.getElementById('titles-input').value;
-    const model = document.getElementById('model-select').value;
-    const titles = input.split('\n').filter(t => t.trim() !== '');
+    // Initiale Belegung des Input-Bereichs
+    document.getElementById('titles-input').value = lists.news;
     
-    document.getElementById('setup-view').style.display = 'none';
-    document.getElementById('batch-view').style.display = 'block';
-    
-    const grid = document.getElementById('asset-grid');
-    grid.innerHTML = '';
-
-    titles.forEach((title, i) => {
-        grid.innerHTML += `
-            <div class="card" id="card-${i}">
-                <strong>#${i+1}: ${title}</strong>
-                <div class="loader-box">
-                    <div class="spinner"></div>
-                    <span style="color: #64748b;">Warte auf API...</span>
-                </div>
-                <img id="img-${i}" src="" onclick="openOverlay(this.src)">
-                <a id="dl-${i}" class="download-btn">Download</a>
-            </div>
-        `;
-    });
-
-    for (let i = 0; i < titles.length; i++) {
-        const card = document.getElementById(`card-${i}`);
-        card.classList.add('active');
-        document.getElementById('progress-text').innerText = `Generiere ${i+1} von ${titles.length}...`;
-
-        try {
-            const pw = new URLSearchParams(window.location.search).get('pw');
-            const response = await fetch(`?action=generate&pw=${pw}&model=${model}&title=${encodeURIComponent(titles[i])}`);
-            
-            const result = await response.json();
-            const base64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-
-            if (base64) {
-                const mime = result.candidates[0].content.parts[0].inlineData.mimeType;
-                const dataUrl = `data:${mime};base64,${base64}`;
-                const img = document.getElementById(`img-${i}`);
-                img.src = dataUrl;
-                
-                // Download Link 
-                const dl = document.getElementById(`dl-${i}`);
-                dl.href = dataUrl;
-                dl.download = `Endo_Asset_${i+1}.png`;
-
-                card.classList.remove('active');
-                card.classList.add('done');
-            } else {
-                const err = result.error?.message || "Safety Block";
-                card.innerHTML += `<p style="color:#ef4444; font-size:12px; margin-top:10px;">⚠️ ${err}</p>`;
-                card.classList.remove('active');
-                card.classList.add('done');
-            }
-        } catch (e) { console.error(e); }
-
-        const percent = ((i + 1) / titles.length) * 100;
-        document.getElementById('progress-bar').style.width = percent + '%';
+    function loadTitles(cat, btn) {
+        document.getElementById('titles-input').value = lists[cat];
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
     }
-    document.getElementById('progress-text').innerText = "Abgeschlossen!";
-    document.getElementById('reset-btn').style.display = 'block';
     
-}
+        
+    function openOverlay(src) {
+        const overlay = document.getElementById('overlay');
+        overlay.querySelector('img').src = src;
+        overlay.style.display = 'flex';
+    }
+    
+    /**
+     * Sequentielle Batch-Verarbeitung via Async/Await.
+     * Verhindert API-Rate-Limit-Konflikte und sorgt für eine flüssige UI-Rückmeldung.
+     */
+    async function startBatch() {
+        const input = document.getElementById('titles-input').value;
+        const model = document.getElementById('model-select').value;
+        const titles = input.split('\n').filter(t => t.trim() !== '');
+        
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('batch-view').style.display = 'block';
+        
+        const grid = document.getElementById('asset-grid');
+        grid.innerHTML = '';
+    
+        // Skeleton-UI Erstellung für die erwarteten Assets
+        titles.forEach((title, i) => {
+            grid.innerHTML += `
+                <div class="card" id="card-${i}">
+                    <strong>#${i+1}: ${title}</strong>
+                    <div class="loader-box">
+                        <div class="spinner"></div>
+                        <span style="color: #64748b;">Warte auf API...</span>
+                    </div>
+                    <img id="img-${i}" src="" onclick="openOverlay(this.src)">
+                    <a id="dl-${i}" class="download-btn">Download</a>
+                </div>
+            `;
+        });
+    
+        for (let i = 0; i < titles.length; i++) {
+            const card = document.getElementById(`card-${i}`);
+            card.classList.add('active');
+            document.getElementById('progress-text').innerText = `Generiere ${i+1} von ${titles.length}...`;
+    
+            try {
+                const pw = new URLSearchParams(window.location.search).get('pw');
+                const response = await fetch(`?action=generate&pw=${pw}&model=${model}&title=${encodeURIComponent(titles[i])}`);
+                
+                const result = await response.json();
+                const base64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    
+                if (base64) {
+                    const mime = result.candidates[0].content.parts[0].inlineData.mimeType;
+                    const dataUrl = `data:${mime};base64,${base64}`;
+                    const img = document.getElementById(`img-${i}`);
+                    img.src = dataUrl;
+                    
+                    // Download Link 
+                    const dl = document.getElementById(`dl-${i}`);
+                    dl.href = dataUrl;
+                    dl.download = `Endo_Asset_${i+1}.png`;
+    
+                    card.classList.remove('active');
+                    card.classList.add('done');
+                } else {
+                    const err = result.error?.message || "Safety Block";
+                    card.innerHTML += `<p style="color:#ef4444; font-size:12px; margin-top:10px;">⚠️ ${err}</p>`;
+                    card.classList.remove('active');
+                    card.classList.add('done');
+                }
+            } catch (e) { console.error(e); }
+    
+            const percent = ((i + 1) / titles.length) * 100;
+            document.getElementById('progress-bar').style.width = percent + '%';
+        }
+        document.getElementById('progress-text').innerText = "Abgeschlossen!";
+        document.getElementById('reset-btn').style.display = 'block';
+        
+    }
 </script>
 </body>
 </html>
