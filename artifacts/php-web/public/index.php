@@ -225,7 +225,7 @@
                     <strong>#${i+1}: ${title}</strong>
                     <div class="loader-box">
                         <div class="spinner"></div>
-                        <span style="color: #64748b;">Warte auf API...</span>
+                        <span style="color: #64748b;">Bitte warten...</span>
                     </div>
                     <img id="img-${i}" src="" onclick="openOverlay(this.src)">
                     <a id="dl-${i}" class="download-btn">Download</a>
