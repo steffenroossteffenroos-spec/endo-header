@@ -18,17 +18,26 @@
     const TEXT_MODEL = "gemini-2.5-pro";
     
     const CI_PROMPT = "Style: Authentic, raw photojournalism and candid snapshot. \n" .
-        "Subject Basis: Adaptive to the title. The image can show genuine people OR minimalist medical objects (pills, kits, devices, microscopes) OR clean microscopic views, depending on what fits best. \n" .
-        "Quality: Photorealistic textures everywhere. NO plastic look, NO glossy 3D rendering style. If people are present: highly detailed natural eyes with realistic catchlights, slight facial asymmetry, \n" . 
-        "visible skin pores, fine wrinkles, raw documentary feel, NO airbrushed makeup, sharp textile folds, genuine expressions matching the topic. \n" .
-        "Colors & Light: Dominant soft blush pink (#FDF2F5), warm beige, and white as accents. Natural daylight, very bright, no harsh shadows. \n" .
+        "Subject Basis: Adaptive to the title. The image can show genuine people OR minimalist medical objects " . 
+        "(pills, kits, devices, microscopes) OR clean microscopic views, depending on what fits best. \n" .
+        "Quality: Photorealistic textures everywhere. NO plastic look, NO glossy 3D rendering style. " .
+        "If people are present: highly detailed natural eyes with realistic catchlights, slight facial asymmetry, " . 
+        "visible skin pores, fine wrinkles, raw documentary feel, NO airbrushed makeup, sharp textile folds, genuine " .
+        "expressions matching the topic. \n" .
+        "Colors & Light: Dominant soft blush pink (#FDF2F5), warm beige, and white as accents. Natural daylight, " . 
+        "very bright, no harsh shadows. \n" .
         "Constraints: ABSOLUTELY NO TEXT, no labels, no signage. No red ribbons, no clinical gore, no internal anatomy.";
 
-    const CI_RULES = "No text in image, no metaphors, no gore. return ONE candid snapshot description. Output ONLY the English scene description.";
+    const CI_RULES = "No text in image, no metaphors, no gore. return ONE candid snapshot description. Output ONLY " . 
+        "the English scene description.";
 
-    const SYSTEMRULE = "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or treatment recommendations. Do not show real medication brands or specific dosages.";
+    const SYSTEMRULE = "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or ". 
+        "treatment recommendations. Do not show real medication brands or specific dosages.";
 
-    const TASK = "Generate optimized prompt according to the topic. Image will be used as header for a news article. The image should be a single static scene, not a collage. The image should show real life documentary style, not a 3D rendering.";
+    const TASK = "Analyze the specific topic and make its core subject the central visual focus of the scene. " . 
+        "Do not default to generic medical scenes. Describe ONE specific, unposed, real-life moment " . 
+        "(e.g. extreme macro shot of a specific object, over-the-shoulder view, or a candid human interaction).";
+    
 
     // --- AJAX ENDPUNKT ---
     if (isset($_GET['action']) && $_GET['action'] === 'generate') {
