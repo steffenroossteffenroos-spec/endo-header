@@ -63,7 +63,7 @@
         $model = $_GET['model'] ?? 'gemini-1.5-flash'; // Bildmodell-Bezeichnung je nach API-Tier
 
         // 1. Schritt: Text-LLM entwirft die Szene
-        $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+        $textUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={$apiKey}";
 
         $aspectRatio = "1:1";
         $task = "Describe a concrete, photorealistic scene for a health blog";

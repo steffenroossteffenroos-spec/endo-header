@@ -5,9 +5,7 @@ version = "1.0.0"
 id = "artifacts/php-web"
 router = "path"
 
-[[integratedSkills]]
-name = "react-vite"
-version = "1.0.0"
+ 
 
 [[services]]
 localPort = 22887
@@ -17,6 +15,7 @@ paths = ["/"]
 [services.development]
 # Vorher: run = "pnpm --filter @workspace/php-web run dev"
 run = ["php", "-S", "0.0.0.0:22887", "-t", "artifacts/php-web/public"]
+
 
 [services.env]
 PORT = "22887"

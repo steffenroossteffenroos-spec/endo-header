@@ -3,7 +3,7 @@ modules = ["nodejs-24", "php", "php-8.4"]
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "php -S 0.0.0.0:22887 -t artifacts/php-web/public"]
+run = ["sh", "-c", "php -S 0.0.0.0:22887 -t public"]
 
 [workflows]
 runButton = "Project"
@@ -15,13 +15,6 @@ timeoutMs = 20000
 [nix]
 channel = "stable-25_05"
 
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
 
 [[ports]]
 localPort = 22887
