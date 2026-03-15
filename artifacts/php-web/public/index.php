@@ -64,7 +64,7 @@
         // Debugging
 
         error_log("##############################################################################\nFinal Prompt: \n" . $final_prompt);
-        debug_log("##############################################################################\n");
+        debug_log(Final Prompt: \n" . $final_prompt);
             
         // 2. Schritt: Bild generieren
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
