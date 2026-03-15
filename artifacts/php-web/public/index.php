@@ -3,115 +3,94 @@
     ini_set('display_errors', 0);
     error_reporting(E_ALL);
 
-    // simpler Passwort Schutz gegen Bots.
+    // simpler Passwort Schutz gegen Bots
     $password = getenv('password');
     if (($_GET['pw'] ?? '') !== $password) die("Zutritt verweigert.");
 
-    // apiKey für Google Gemini aus Umgebungsvariable laden
     $apiKey = getenv('ApiKey');
 
+    /**
+     * CI-Rahmen: Kombiniert die vom LLM generierte Szene mit den festen Design-Vorgaben.
+     */
     function get_dynamic_ci_prompt($scene, $original_title) {
         $title_lower = strtolower($original_title);
-    
+
         // 1. Base CI (Technische & Ästhetische Leitplanken)
-        $base_ci = "Style: Documentary health photography. Photorealistic lifestyle or medical photo. \n" .
+        $base_ci = "Style: Documentary health photography. Photorealistic lifestyle or medical close-up. \n" .
         "Quality: Real skin textures, textile folds, NO plastic/3D look. Objects must look real and worn. \n" .
         "Camera: 50mm-85mm or macro lens, f/1.8-f/2.8, extreme shallow depth of field, soft bokeh. \n" .
         "Colors: Soft blush pink (#FDF2F5), warm beige, clean white, subtle cool blue. Bright, natural diffused daylight, no harsh shadows. \n" .
-        "Constraints: ABSOLUTELY NO TEXT, letters, labels, or logos. No red ribbons, no clinical gore.";
-    
-        // 2. Szenen-Kombination
-        $prompt = "Scene Description: " . $scene . " \n";
-    
-        // 3. Vibe-Leitplanken via Regex (aus dem Original-Titel abgeleitet)
-        if (preg_match('/(wirkstoff|medikament|pille|therapie|vitamin)/', $title_lower)) {
-            $vibe = "Atmosphere: Clinical but warm. Soft medical aesthetics.";
+        "Constraints: ABSOLUTELY NO TEXT, letters, labels, or logos. No red ribbons, no clinical gore, no invasive procedures.";
+
+        // 2. Szene & Vibe-Leitplanken via Regex
+        $prompt = "Main Scene: " . $scene . " \n";
+
+        if (preg_match('/(wirkstoff|medikament|pille|therapie|vitamin|yselty|relugolix)/', $title_lower)) {
+            $vibe = "Atmosphere: Clinical but warm. Soft medical aesthetics, human-centric treatment.";
         } 
         elseif (preg_match('/(test|mikroskop|forschung|studie|zellen|bakterien|biomarker|diagnostik)/', $title_lower)) {
-            $vibe = "Atmosphere: Scientific and professional. Detailed macro focus.";
+            $vibe = "Atmosphere: Scientific and professional. Detailed macro focus on care and discovery.";
         } 
         elseif (preg_match('/(gesetz|wahl|recht|politik|urteil|bundestag)/', $title_lower)) {
-            $vibe = "Atmosphere: Formal and dignified. Calm lighting.";
+            $vibe = "Atmosphere: Formal and dignified. Calm, serious but bright lighting.";
         } 
         elseif (preg_match('/(digital|app|code|digig|software|ki)/', $title_lower)) {
-            $vibe = "Atmosphere: Modern. Subtle tech glow on skin.";
+            $vibe = "Atmosphere: Modern. Subtle technology glow on skin, human-tech connection.";
         } 
         elseif (preg_match('/(schmerz|pms|pmds|krämpfe|beschwerden|fatigue)/', $title_lower)) {
-            $vibe = "Atmosphere: Intimate and authentic self-care vibe.";
+            $vibe = "Atmosphere: Intimate, authentic, vulnerable self-care moment.";
         }
         else {
-            $vibe = "Atmosphere: Natural real-life documentary.";
+            $vibe = "Atmosphere: Natural real-life documentary, bright and airy.";
         }
-    
+
         return $prompt . $vibe . " \n" . $base_ci;
     }
-    
-   
+
     // --- AJAX ENDPUNKT ---
     if (isset($_GET['action']) && $_GET['action'] === 'generate') {
         header('Content-Type: application/json');
 
-        // Parameter einlesen
         $title = $_GET['title'] ?? '';
-        $model = $_GET['model'] ?? 'gemini-2.5-flash-image';
+        $model = $_GET['model'] ?? 'gemini-1.5-flash'; // Bildmodell-Bezeichnung je nach API-Tier
 
-        // Bild-Konfiguration 
-        $imgTemperature = 0.4;
-        $imgAspectRatio = "1:1";
-
-        // 1. Prompt-Optimierung via Text-Modell (Was soll zu sehen sein?)
-        $textModel = 'gemini-1.5-flash'; // Korrektur auf existierendes Modell
-        $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$textModel}:generateContent?key={$apiKey}";
-
-        // Wir geben dem Text-Modell den Titel und fragen nach einer Szene
-        $textPrompt = "Create a photographic scene for the blog title: '{$title}' for a page about endometriosis. " .
-                      "No text in image, no metaphors. Output ONLY the English scene description.";
+        // 1. Schritt: Text-LLM entwirft die Szene
+        $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+        $textPrompt = "Task: Describe a concrete, photorealistic 1-sentence scene for a health blog. 
+                       Topic: '{$title}'. 
+                       Focus: A genuine person interacting with an object (e.g. holding a cup, looking at a device, preparing food). 
+                       Rules: No text in image, no metaphors, no gore. Output ONLY the English scene description.";
 
         $ch1 = curl_init($textUrl);
         curl_setopt_array($ch1, [
-            CURLOPT_RETURNTRANSFER => true, 
-            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
         ]);
         $textResponse = json_decode(curl_exec($ch1), true);
         curl_close($ch1);
 
-        // Die vom LLM generierte Szene extrahieren
         $optimizedScene = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
 
-        // 2. CI Master Prompt dynamisch generieren (Wie soll es aussehen?)
-        // Übergabe der optimierten Szene an die Funktion!
-        $ci_prompt = get_dynamic_ci_prompt($optimizedScene, $title);
+        // 2. Schritt: CI-Prompt bauen
+        $final_prompt = get_dynamic_ci_prompt($optimizedScene, $title);
 
-        // 2. Bild-Modell Aufruf
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        // 3. Schritt: Bild-Generierung
+        $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $payload = [
-            "contents" => [["parts" => [["text" => $ci_prompt]]]],
+            "contents" => [["parts" => [["text" => $final_prompt]]]],
             "systemInstruction" => [
                 "parts" => [["text" => "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or treatment recommendations. Do not show real medication brands or specific dosages."]]
             ],
-            "safetySettings" => [
-                [
-                    "category" => "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    "threshold" => "BLOCK_ONLY_HIGH"
-                ],
-                [
-                    "category" => "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    "threshold" => "BLOCK_ONLY_HIGH"
-                ]
-            ],
             "generationConfig" => [
                 "response_modalities" => ["IMAGE"],
-                "temperature" => $imgTemperature,
-                "imageConfig" => [
-                    "aspectRatio" => $imgAspectRatio
-                ]
+                "temperature" => 0.4,
+                "imageConfig" => ["aspectRatio" => "1:1"]
             ]
         ];
-    
-        $ch = curl_init($url);
+
+        $ch = curl_init($imgUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
@@ -119,12 +98,12 @@
         ]);
         $response = curl_exec($ch);
         curl_close($ch);
-    
-        sleep(2); // Rate Limit Schutz
+
         echo $response;
         exit;
     }
 ?>
+            
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -152,16 +131,13 @@
         </div>
         <textarea id="titles-input" wrap="off"></textarea>
         
-        <div style="display: flex; gap: 15px; align-items: center;">
+        <div style="display: flex; gap: 15px; align-items: center;margin-bottom:25px;">
             <select id="model-select" >
                 <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
                 <option disabled value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image Preview</option>
             </select>
         </div>
-        <p style="text-align: center;">
-            Dauer: ca. 10 Sekunden pro Bild. Kosten: ca. 4 Cent pro Bild<br>
-        </p>
-        <button class="btn" onclick="startBatch()" >Bilder generieren...</button>
+        <button class="btn" onclick="startBatch()" >Bilder generieren... (ca. 10 Sekunden pro Bild)</button>
     </div>
     
     <div id="batch-view">
