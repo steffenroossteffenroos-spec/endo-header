@@ -60,10 +60,12 @@
         header('Content-Type: application/json');
 
         $title = $_GET['title'] ?? '';
-        $model = $_GET['model'] ?? 'gemini-1.5-flash'; // Bildmodell-Bezeichnung je nach API-Tier
+        $model = $_GET['model'] ?? 'gemini-2.5-flash'; // Bildmodell-Bezeichnung je nach API-Tier
 
         // 1. Schritt: Text-LLM entwirft die Szene
-        $textUrl = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+
+        $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}";
+        
 
         $aspectRatio = "1:1";
         $task = "Describe a concrete, photorealistic scene for a health blog";
@@ -80,15 +82,20 @@
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
         ]);
-        $textResponse = json_decode(curl_exec($ch1), true);
+        
         curl_close($ch1);
+        $textResponse = json_decode(curl_exec($ch1), true);
+        
+        
 
         $optimizedScene = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
 
         // 2. Schritt: CI-Prompt bauen
         $final_prompt = get_dynamic_ci_prompt($optimizedScene, $title);
 
+         
         // 3. Schritt: Bild-Generierung
+        
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $payload = [
