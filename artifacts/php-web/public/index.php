@@ -40,7 +40,7 @@
         // 1. Schritt: Text-LLM entwirft den Prompt für einen Titel
         $aspectRatio = "1:1";
         
-        $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/".TEXT_MODEL.":generateContent?key={$apiKey}";
+        $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/". TEXT_MODEL .":generateContent?key={$apiKey}";
 
         $textPrompt = "Task: " . TASK ." Topic: '{$title}'. Rules: ". CI_RULES . " . CorporateIdenity-Rules: " . CI_PROMPT;
         
@@ -62,10 +62,8 @@
         $final_prompt = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
 
         // Debugging
+        // error_log("Final Prompt: \n" . $final_prompt);
 
-        error_log("##############################################################################\nFinal Prompt: \n" . $final_prompt);
-        debug_log(Final Prompt: \n" . $final_prompt);
-            
         // 2. Schritt: Bild generieren
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
