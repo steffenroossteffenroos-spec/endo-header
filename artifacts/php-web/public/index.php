@@ -136,9 +136,15 @@
     </div>
     
     <div id="batch-view">
-        <div class="progress-bg"><div id="progress-bar"></div></div>
+        <div class="progress-bg">
+            <div id="progress-bar"></div>
+        </div>
+        <p style="text-align: center;">(Dauer: ca. 10 Sekunden pro Bild</p>
         <p id="progress-text" style="text-align: center; margin-bottom: 30px; color: green; font-weight: bold;"></p>
-        <div class="grid" id="asset-grid"></div>
+        
+        <div class="grid" id="asset-grid">
+            
+        </div>
     </div>
     <button id="reset-btn" class="btn" style="display:none;" onclick="location.reload()">Neu beginnen</button>           
 </div>
@@ -216,7 +222,7 @@
         document.getElementById('batch-view').style.display = 'block';
         
         const grid = document.getElementById('asset-grid');
-        grid.innerHTML = '';
+        grid.innerHTML = ''; 
     
         // Skeleton-UI Erstellung für die erwarteten Assets
         titles.forEach((title, i) => {
