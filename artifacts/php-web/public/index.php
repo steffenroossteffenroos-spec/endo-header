@@ -2,6 +2,7 @@
     // Fehler-Management: Unterdrückung im Frontend zur Vermeidung von Information Leakage
     ini_set('display_errors', 0);
     error_reporting(E_ALL);
+    set_time_limit(300);
 
     // Security-Layer: Authentifizierung über serverseitige Umgebungsvariablen (Secrets) um Api-Guthaben zu schützen
     $password = getenv('password');
@@ -15,9 +16,7 @@
 
     const IMG_TEMPERATURE = 0.4;
     
-    //const TEXT_MODEL = "gemini-2.5-pro";
-    //const TEXT_MODEL = "gemini-3.1-pro-preview";
-    const TEXT_MODEL = "gemini-3.1-flash-lite-preview";
+    const TEXT_MODEL = "gemini-3-flash-preview";
     
     const CI_PROMPT = "Style: Authentic, positive, photograph for a wellness company website. \n" .
         "Subject Basis: Adaptive to the title. The image can show genuine people OR minimalist medical objects " . 
@@ -85,7 +84,7 @@
                 break;
             } catch (Exception $e) {
                 error_log("ajax: " . $e->getMessage());
-                usleep(500000);
+                sleep(1);
             }
             finally {
                 if (isset($chText) && $chText !== false) {
@@ -143,7 +142,7 @@
             }
             catch (Exception $e) {
                  error_log("ApiCall: " . $e->getMessage());
-                 usleep(500000);
+                 sleep(1);
             }
             finally {
                 if (isset($chImage) && $chImage !== false) {
@@ -270,96 +269,10 @@
     }
 
 
-    async function startBatch() {
-        const input = document.getElementById('titles-input').value;
-        const model = document.getElementById('model-select').value;
-        const titles = input.split('\n').filter(t => t.trim() !== '');
-
-        document.getElementById('setup-view').style.display = 'none';
-        document.getElementById('batch-view').style.display = 'block';
-
-        const grid = document.getElementById('asset-grid');
-        grid.innerHTML = ''; 
-
-        // 1. Skeleton-UI für alle Karten vorab erstellen
-        titles.forEach((title, i) => {
-            grid.innerHTML += `
-                <div class="card" id="card-${i}">
-                    <strong>#${i+1}: ${title}</strong>
-                    <div class="loader-box">
-                        <div class="spinner"></div>
-                        <span style="color: #64748b;">Bitte warten...</span>
-                    </div>
-                    <img id="img-${i}" src="" onclick="openOverlay(this.src)">
-                    <a id="dl-${i}" class="download-btn">Download</a>
-                </div>
-            `;
-        });
-
-        const pw = new URLSearchParams(window.location.search).get('pw');
-        let finishedCount = 0;
-
-        // 2. Erstelle ein Array von Promises (Anfragen), die alle gleichzeitig starten
-        const batchPromises = titles.map(async (title, i) => {
-            const card = document.getElementById(`card-${i}`);
-            card.classList.add('active');
-
-            try {
-                const response = await fetch(`?action=generate&pw=${pw}&model=${model}&title=${encodeURIComponent(title)}`);
-                const result = await response.json();
-                const base64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-
-                if (base64) {
-                    const mime = result.candidates[0].content.parts[0].inlineData.mimeType;
-                    const dataUrl = `data:${mime};base64,${base64}`;
-                    const img = document.getElementById(`img-${i}`);
-                    img.src = dataUrl;
-
-                    const dl = document.getElementById(`dl-${i}`);
-                    dl.href = dataUrl;
-                    dl.download = `Endo_Asset_${i+1}.png`;
-
-                    card.classList.remove('active');
-                    card.classList.add('done');
-                } else {
-                    const err = result.error?.message || "Safety Block";
-                    card.innerHTML += `<p style="color:#ef4444; font-size:12px; margin-top:10px;">⚠️ ${err}</p>`;
-                    card.classList.remove('active');
-                    card.classList.add('done');
-                }
-            } catch (e) {
-                console.error(e);
-                card.innerHTML += `<p style="color:#ef4444; font-size:12px; margin-top:10px;">⚠️ Netzwerkfehler</p>`;
-                card.classList.remove('active');
-            }
-
-            // Fortschrittsbalken aktualisieren, wenn eine einzelne Aufgabe fertig ist
-            finishedCount++;
-            const percent = (finishedCount / titles.length) * 100;
-            document.getElementById('progress-bar').style.width = percent + '%';
-            document.getElementById('progress-text').innerText = `Verarbeite ${finishedCount} von ${titles.length}...`;
-        });
-
-        // 3. Warten, bis alle gestarteten Aufgaben abgeschlossen sind
-        await Promise.all(batchPromises);
-
-        document.getElementById('progress-text').innerText = "Abgeschlossen!";
-        document.getElementById('reset-btn').style.display = 'block';
-    }
-
-    
     /**
      * Sequentielle Batch-Verarbeitung via Async/Await.
      * Verhindert API-Rate-Limit-Konflikte und sorgt für eine flüssige UI-Rückmeldung.
      */
-
-
-    /**
-     * Sequentielle Batch-Verarbeitung via Async/Await.
-     * Verhindert API-Rate-Limit-Konflikte und sorgt für eine flüssige UI-Rückmeldung.
-     */
-
-
     async function startBatch() {
         const input = document.getElementById('titles-input').value;
         const model = document.getElementById('model-select').value;
