@@ -63,7 +63,7 @@
                 curl_setopt_array($chText, [
                     CURLOPT_RETURNTRANSFER => true, 
                     CURLOPT_POST => true,
-                    CURLOPT_TIMEOUT => 25, // Bricht nach 25 Sek. ab und geht in den nächsten Retry
+                    CURLOPT_TIMEOUT => 60, // Bricht nach 25 Sek. ab und geht in den nächsten Retry
                     CURLOPT_CONNECTTIMEOUT => 10, // Wartet max. 10 Sek. auf den Verbindungsaufbau
                     CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
                     CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
@@ -123,7 +123,7 @@
                 curl_setopt_array($chImage, [
                     CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
                     CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                    CURLOPT_TIMEOUT => 25, // Bricht nach 25 Sek. ab und geht in den nächsten Retry
+                    CURLOPT_TIMEOUT => 60, // Bricht nach 25 Sek. ab und geht in den nächsten Retry
                     CURLOPT_CONNECTTIMEOUT => 10,
                     CURLOPT_POSTFIELDS => json_encode($payload)
                 ]);
