@@ -47,29 +47,47 @@
         
         $textUrl = "https://generativelanguage.googleapis.com/v1beta/models/". TEXT_MODEL .":generateContent?key={$apiKey}";
 
+        // Prompt für Text-Modell
         $textPrompt = "Task: " . TASK ." Topic: '{$title}'. Rules: ". CI_RULES . " . CorporateIdenity-Rules: " . CI_PROMPT;
-        
-        // Api Call Text-Modell
-        $ch1 = curl_init($textUrl);
-        curl_setopt_array($ch1, [
-            CURLOPT_RETURNTRANSFER => true, 
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
-        ]);
+        $textResponse = "";
+        $ch1 = null;
+        try {
+            // ApiCall Text-Modell
+            $ch1 = curl_init($textUrl);
+            curl_setopt_array($ch1, [
+                CURLOPT_RETURNTRANSFER => true, 
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
+            ]);
+    
+            $rawResponse = curl_exec($ch1);
+            $textResponse = json_decode($rawResponse, true);
 
-        $rawResponse = curl_exec($ch1);
-        curl_close($ch1);
-        
-        $textResponse = json_decode($rawResponse, true);
+            // Fehlerbehandlung
+            if (curl_errno($ch1)) {
+                throw new Exception(curl_error($ch1));
+            }
+
+            $httpCode = curl_getinfo($ch1, CURLINFO_HTTP_CODE);
+            if ($httpCode < 200 || $httpCode >= 300) {
+                throw new Exception("HTTP Error: " . $httpCode);
+            }
+            
+            curl_close($ch1);
+            
+        } catch (Exception $e) {
+            error_log("ajax: " . $e->getMessage());
+        }
+        finally {
+            
+            if (isset($ch1) && $ch1 !== false) {
+                curl_close($ch1);
+            }
+        }
 
         // Prompt für Bildmodell
         $final_prompt = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
-
-        // Debugging
-        // error_log("Final Prompt: \n" . $final_prompt);
-
-        // 2. Schritt: Bild generieren
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $payload = [
@@ -85,14 +103,36 @@
         ];
 
         // Api Call Bildmodell                
-        $ch = curl_init($imgUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => json_encode($payload)
-        ]);
-        $response = curl_exec($ch);
-        curl_close($ch);
+        $response = null;
+        $ch = null;
+        try {
+            $ch = curl_init($imgUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS => json_encode($payload)
+            ]);
+            $response = curl_exec($ch);
+
+            if (curl_errno($ch)) {
+                throw new Exception(curl_error($ch1));
+            }
+
+            $httpCode = curl_getinfo($ch1, CURLINFO_HTTP_CODE);
+            if ($httpCode < 200 || $httpCode >= 300) {
+                throw new Exception("HTTP Error: " . $httpCode);
+            }
+            
+            curl_close($ch);
+        }
+        catch (Exception $e) {
+             error_log("ApiCall: " . $e->getMessage());
+        }
+        finally {
+            if (isset($ch) && $ch !== false) {
+                curl_close($ch);
+            }
+        }
 
         echo $response;
         exit;
