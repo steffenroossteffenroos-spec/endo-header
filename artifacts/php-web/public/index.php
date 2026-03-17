@@ -15,7 +15,9 @@
 
     const IMG_TEMPERATURE = 0.4;
     
-    const TEXT_MODEL = "gemini-2.5-pro";
+    //const TEXT_MODEL = "gemini-2.5-pro";
+    //const TEXT_MODEL = "gemini-3.1-pro-preview";
+    const TEXT_MODEL = "gemini-3.1-flash-lite-preview";
     
     const CI_PROMPT = "Style: Authentic, positive, photograph for a wellness company website. \n" .
         "Subject Basis: Adaptive to the title. The image can show genuine people OR minimalist medical objects " . 
@@ -53,35 +55,39 @@
         $chText = null;
 
         // ApiCall Text-Modell
-        try {
-            $chText = curl_init($textUrl);
-            curl_setopt_array($chText, [
-                CURLOPT_RETURNTRANSFER => true, 
-                CURLOPT_POST => true,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
-            ]);
+        // falls Server überlastet, Retry
+        $maxRetriesText = 3;
+        for ($attempt = 0; $attempt < $maxRetriesText; $attempt++) {
+            try {
+                $chText = curl_init($textUrl);
+                curl_setopt_array($chText, [
+                    CURLOPT_RETURNTRANSFER => true, 
+                    CURLOPT_POST => true,
+                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                    CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
+                ]);
+        
+                $rawResponse = curl_exec($chText);
+                $textResponse = json_decode($rawResponse, true);
     
-            $rawResponse = curl_exec($chText);
-            $textResponse = json_decode($rawResponse, true);
-
-            if (curl_errno($chText)) {
-                throw new Exception(curl_error($chText));
+                if (curl_errno($chText)) {
+                    throw new Exception(curl_error($chText));
+                }
+    
+                $httpCode = curl_getinfo($chText, CURLINFO_HTTP_CODE);
+                if ($httpCode < 200 || $httpCode >= 300) {
+                    throw new Exception("HTTP Error: " . $httpCode);
+                }
+            } catch (Exception $e) {
+                error_log("ajax: " . $e->getMessage());
             }
-
-            $httpCode = curl_getinfo($chText, CURLINFO_HTTP_CODE);
-            if ($httpCode < 200 || $httpCode >= 300) {
-                throw new Exception("HTTP Error: " . $httpCode);
-            }
-        } catch (Exception $e) {
-            error_log("ajax: " . $e->getMessage());
-        }
-        finally {
-            if (isset($chText) && $chText !== false) {
-                curl_close($chText);
+            finally {
+                if (isset($chText) && $chText !== false) {
+                    curl_close($chText);
+                }
             }
         }
-
+        
         // Prompt für Bildmodell
         $imagePrompt = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
@@ -101,33 +107,37 @@
         // Api Call Bildmodell                
         $response = null;
         $chImage = null;
-        try {
-            $chImage = curl_init($imgUrl);
-            curl_setopt_array($chImage, [
-                CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                CURLOPT_POSTFIELDS => json_encode($payload)
-            ]);
-            $response = curl_exec($chImage);
 
-            if (curl_errno($chImage)) {
-                throw new Exception(curl_error($chImage));
+        // falls Server überlastet, Retry
+        $maxRetriesImage = 3;
+        for ($attempt = 0; $attempt < $maxRetriesImage; $attempt++) {
+            try {
+                $chImage = curl_init($imgUrl);
+                curl_setopt_array($chImage, [
+                    CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                    CURLOPT_POSTFIELDS => json_encode($payload)
+                ]);
+                $response = curl_exec($chImage);
+    
+                if (curl_errno($chImage)) {
+                    throw new Exception(curl_error($chImage));
+                }
+    
+                $httpCode = curl_getinfo($chImage, CURLINFO_HTTP_CODE);
+                if ($httpCode < 200 || $httpCode >= 300) {
+                    throw new Exception("HTTP Error: " . $httpCode);
+                }
             }
-
-            $httpCode = curl_getinfo($chImage, CURLINFO_HTTP_CODE);
-            if ($httpCode < 200 || $httpCode >= 300) {
-                throw new Exception("HTTP Error: " . $httpCode);
+            catch (Exception $e) {
+                 error_log("ApiCall: " . $e->getMessage());
+            }
+            finally {
+                if (isset($chImage) && $chImage !== false) {
+                    curl_close($chImage);
+                }
             }
         }
-        catch (Exception $e) {
-             error_log("ApiCall: " . $e->getMessage());
-        }
-        finally {
-            if (isset($chImage) && $chImage !== false) {
-                curl_close($chImage);
-            }
-        }
-
         if (!$response) {
             $response = json_encode(["error" => ["message" => "API Fehler oder leere Antwort"]]);
         }
