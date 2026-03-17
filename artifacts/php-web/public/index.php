@@ -23,7 +23,7 @@
         "(pills, kits, devices, microscopes) OR clean microscopic views, depending on what fits best. \n" .
         "Quality: Ultra-realistic. Must look like a real, unedited photo. Photorealistic textures everywhere. " .
         "very bright, no harsh shadows. \n" .
-        "Constraints: ABSOLUTELY NO TEXT, no labels, no signage. No red ribbons, no clinical gore, no internal anatomy.";
+        "Constraints: If objects are shown, show them from an angle where no branding or writing is visible. No red ribbons, no clinical gore, no internal anatomy.";
 
     const CI_RULES = "No text in image, no metaphors, no gore. return ONE candid snapshot description. Output ONLY " . 
         "the English scene description.";
@@ -31,10 +31,7 @@
     const SYSTEMRULE = "IMPORTANT: The generated images must never be interpreted as medical advice, diagnosis, or ". 
         "treatment recommendations. Do not show real medication brands or specific dosages.";
 
-    const TASK = "Analyze the specific topic and make its core subject the central visual focus of the scene. " . 
-        "Do not default to generic scenes. Describe ONE specific, unposed, real-life moment " . 
-        "(e.g. extreme macro shot of a specific object, over-the-shoulder view, or a candid human interaction).";
-    
+    const TASK = "Analyze the specific topic and make its core subject the central visual focus of the scene.";
 
     // --- AJAX ENDPUNKT ---
     if (isset($_GET['action']) && $_GET['action'] === 'generate') {
