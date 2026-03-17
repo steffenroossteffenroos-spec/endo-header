@@ -78,6 +78,7 @@
                 if ($httpCode < 200 || $httpCode >= 300) {
                     throw new Exception("HTTP Error: " . $httpCode);
                 }
+                
             } catch (Exception $e) {
                 error_log("ajax: " . $e->getMessage());
             }
@@ -86,6 +87,7 @@
                     curl_close($chText);
                 }
             }
+            break;
         }
          
         // Prompt für Bildmodell
@@ -137,6 +139,7 @@
                     curl_close($chImage);
                 }
             }
+            break;
         }
         if (!$response) {
             $response = json_encode(["error" => ["message" => "API Fehler oder leere Antwort"]]);
