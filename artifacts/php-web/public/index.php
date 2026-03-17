@@ -97,11 +97,15 @@
         // Prompt für Bildmodell mit fallback
         $imagePrompt = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title ." " . TASK . " " . CI_PROMPT . " " . SYSTEMRULE;
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-
+        
         $payload = [
             "contents" => [["parts" => [["text" => $imagePrompt ]]]],
             "systemInstruction" => [
-                "parts" => [["text" => SYSTEMRULE]]
+                // Hier kombinieren wir die Stil-Vorgaben und die Verbote
+                "parts" => [["text" => 
+                    "STYLE & QUALITY:\n" . CI_PROMPT . "\n\n" . 
+                    "SAFETY & CONTENT RULES:\n" . CI_RULES . "\n" . SYSTEMRULE
+                ]]
             ],
             "generationConfig" => [
                 "response_modalities" => ["IMAGE"],
