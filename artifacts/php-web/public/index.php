@@ -63,6 +63,8 @@
                 curl_setopt_array($chText, [
                     CURLOPT_RETURNTRANSFER => true, 
                     CURLOPT_POST => true,
+                    CURLOPT_TIMEOUT => 25, // Bricht nach 25 Sek. ab und geht in den nächsten Retry
+                    CURLOPT_CONNECTTIMEOUT => 10, // Wartet max. 10 Sek. auf den Verbindungsaufbau
                     CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
                     CURLOPT_POSTFIELDS => json_encode(["contents" => [["parts" => [["text" => $textPrompt]]]]])
                 ]);
@@ -81,6 +83,7 @@
                 
             } catch (Exception $e) {
                 error_log("ajax: " . $e->getMessage());
+                usleep(500000);
             }
             finally {
                 if (isset($chText) && $chText !== false) {
@@ -90,8 +93,8 @@
             break;
         }
          
-        // Prompt für Bildmodell
-        $imagePrompt = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
+        // Prompt für Bildmodell mit fallback
+        $imagePrompt = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title ." " . TASK . " " . CI_PROMPT . " " . SYSTEMRULE;
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $payload = [
@@ -118,6 +121,8 @@
                 curl_setopt_array($chImage, [
                     CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
                     CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                    CURLOPT_TIMEOUT => 25, // Bricht nach 25 Sek. ab und geht in den nächsten Retry
+                    CURLOPT_CONNECTTIMEOUT => 10,
                     CURLOPT_POSTFIELDS => json_encode($payload)
                 ]);
                 $response = curl_exec($chImage);
@@ -133,6 +138,7 @@
             }
             catch (Exception $e) {
                  error_log("ApiCall: " . $e->getMessage());
+                 usleep(500000);
             }
             finally {
                 if (isset($chImage) && $chImage !== false) {
@@ -258,22 +264,109 @@
         overlay.querySelector('img').src = src;
         overlay.style.display = 'flex';
     }
+
+
+    async function startBatch() {
+        const input = document.getElementById('titles-input').value;
+        const model = document.getElementById('model-select').value;
+        const titles = input.split('\n').filter(t => t.trim() !== '');
+
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('batch-view').style.display = 'block';
+
+        const grid = document.getElementById('asset-grid');
+        grid.innerHTML = ''; 
+
+        // 1. Skeleton-UI für alle Karten vorab erstellen
+        titles.forEach((title, i) => {
+            grid.innerHTML += `
+                <div class="card" id="card-${i}">
+                    <strong>#${i+1}: ${title}</strong>
+                    <div class="loader-box">
+                        <div class="spinner"></div>
+                        <span style="color: #64748b;">Bitte warten...</span>
+                    </div>
+                    <img id="img-${i}" src="" onclick="openOverlay(this.src)">
+                    <a id="dl-${i}" class="download-btn">Download</a>
+                </div>
+            `;
+        });
+
+        const pw = new URLSearchParams(window.location.search).get('pw');
+        let finishedCount = 0;
+
+        // 2. Erstelle ein Array von Promises (Anfragen), die alle gleichzeitig starten
+        const batchPromises = titles.map(async (title, i) => {
+            const card = document.getElementById(`card-${i}`);
+            card.classList.add('active');
+
+            try {
+                const response = await fetch(`?action=generate&pw=${pw}&model=${model}&title=${encodeURIComponent(title)}`);
+                const result = await response.json();
+                const base64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+                if (base64) {
+                    const mime = result.candidates[0].content.parts[0].inlineData.mimeType;
+                    const dataUrl = `data:${mime};base64,${base64}`;
+                    const img = document.getElementById(`img-${i}`);
+                    img.src = dataUrl;
+
+                    const dl = document.getElementById(`dl-${i}`);
+                    dl.href = dataUrl;
+                    dl.download = `Endo_Asset_${i+1}.png`;
+
+                    card.classList.remove('active');
+                    card.classList.add('done');
+                } else {
+                    const err = result.error?.message || "Safety Block";
+                    card.innerHTML += `<p style="color:#ef4444; font-size:12px; margin-top:10px;">⚠️ ${err}</p>`;
+                    card.classList.remove('active');
+                    card.classList.add('done');
+                }
+            } catch (e) {
+                console.error(e);
+                card.innerHTML += `<p style="color:#ef4444; font-size:12px; margin-top:10px;">⚠️ Netzwerkfehler</p>`;
+                card.classList.remove('active');
+            }
+
+            // Fortschrittsbalken aktualisieren, wenn eine einzelne Aufgabe fertig ist
+            finishedCount++;
+            const percent = (finishedCount / titles.length) * 100;
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-text').innerText = `Verarbeite ${finishedCount} von ${titles.length}...`;
+        });
+
+        // 3. Warten, bis alle gestarteten Aufgaben abgeschlossen sind
+        await Promise.all(batchPromises);
+
+        document.getElementById('progress-text').innerText = "Abgeschlossen!";
+        document.getElementById('reset-btn').style.display = 'block';
+    }
+
     
     /**
      * Sequentielle Batch-Verarbeitung via Async/Await.
      * Verhindert API-Rate-Limit-Konflikte und sorgt für eine flüssige UI-Rückmeldung.
      */
+
+
+    /**
+     * Sequentielle Batch-Verarbeitung via Async/Await.
+     * Verhindert API-Rate-Limit-Konflikte und sorgt für eine flüssige UI-Rückmeldung.
+     */
+
+
     async function startBatch() {
         const input = document.getElementById('titles-input').value;
         const model = document.getElementById('model-select').value;
         const titles = input.split('\n').filter(t => t.trim() !== '');
-        
+
         document.getElementById('setup-view').style.display = 'none';
         document.getElementById('batch-view').style.display = 'block';
-        
+
         const grid = document.getElementById('asset-grid');
         grid.innerHTML = ''; 
-    
+
         // Skeleton-UI Erstellung für die erwarteten Assets
         titles.forEach((title, i) => {
             grid.innerHTML += `
@@ -288,30 +381,30 @@
                 </div>
             `;
         });
-    
+
         for (let i = 0; i < titles.length; i++) {
             const card = document.getElementById(`card-${i}`);
             card.classList.add('active');
             document.getElementById('progress-text').innerText = `Generiere ${i+1} von ${titles.length}...`;
-    
+
             try {
                 const pw = new URLSearchParams(window.location.search).get('pw');
                 const response = await fetch(`?action=generate&pw=${pw}&model=${model}&title=${encodeURIComponent(titles[i])}`);
-                
+
                 const result = await response.json();
                 const base64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    
+
                 if (base64) {
                     const mime = result.candidates[0].content.parts[0].inlineData.mimeType;
                     const dataUrl = `data:${mime};base64,${base64}`;
                     const img = document.getElementById(`img-${i}`);
                     img.src = dataUrl;
-                    
+
                     // Download Link 
                     const dl = document.getElementById(`dl-${i}`);
                     dl.href = dataUrl;
                     dl.download = `Endo_Asset_${i+1}.png`;
-    
+
                     card.classList.remove('active');
                     card.classList.add('done');
                 } else {
@@ -321,13 +414,13 @@
                     card.classList.add('done');
                 }
             } catch (e) { console.error(e); }
-    
+
             const percent = ((i + 1) / titles.length) * 100;
             document.getElementById('progress-bar').style.width = percent + '%';
         }
         document.getElementById('progress-text').innerText = "Abgeschlossen!";
         document.getElementById('reset-btn').style.display = 'block';
-        
+
     }
 </script>
 </body>
