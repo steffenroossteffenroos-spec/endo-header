@@ -87,7 +87,7 @@
                 }
             }
         }
-        
+         
         // Prompt für Bildmodell
         $imagePrompt = $textResponse['candidates'][0]['content']['parts'][0]['text'] ?? $title;
         $imgUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
