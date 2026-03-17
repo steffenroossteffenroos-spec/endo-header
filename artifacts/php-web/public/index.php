@@ -80,7 +80,9 @@
                 if ($httpCode < 200 || $httpCode >= 300) {
                     throw new Exception("HTTP Error: " . $httpCode);
                 }
-                
+
+                // operation erfolgreich, Schleife verlassen
+                break;
             } catch (Exception $e) {
                 error_log("ajax: " . $e->getMessage());
                 usleep(500000);
@@ -90,7 +92,7 @@
                     curl_close($chText);
                 }
             }
-            break;
+            
         }
          
         // Prompt für Bildmodell mit fallback
@@ -135,6 +137,9 @@
                 if ($httpCode < 200 || $httpCode >= 300) {
                     throw new Exception("HTTP Error: " . $httpCode);
                 }
+                
+                // operation erfolgreich, Schleife verlassen
+                break;
             }
             catch (Exception $e) {
                  error_log("ApiCall: " . $e->getMessage());
@@ -145,7 +150,6 @@
                     curl_close($chImage);
                 }
             }
-            break;
         }
         if (!$response) {
             $response = json_encode(["error" => ["message" => "API Fehler oder leere Antwort"]]);
